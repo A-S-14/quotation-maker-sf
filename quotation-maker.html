@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -805,6 +804,7 @@
             const clientName = document.getElementById('clientName').value.trim();
             const preparedBy = document.getElementById('preparedBy').value.trim();
             const quoteDate = document.getElementById('quoteDate').value;
+            const siteAddress = document.getElementById('siteAddress').value.trim();
             
             if (!pid || !clientName || !preparedBy || !quoteDate) {
                 alert('Please fill in: PID, Client Name, Prepared By, and Quote Date');
@@ -824,15 +824,15 @@
             const grandTotal = subtotal + totalGST;
             
             // Create a new window with the PDF-ready HTML
-            createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST);
+            createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
         }
         
-        function createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST) {
+        function createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
             // Open new window
             const printWindow = window.open('', '_blank');
             
             // Generate the HTML content
-            const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST);
+            const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
             
             // Write to new window
             printWindow.document.write(htmlContent);
@@ -848,7 +848,9 @@
             showMessage('✓ PDF preview opened! Click Print and choose "Save as PDF"', 'success');
         }
         
-        function generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST) {
+        function generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
+            const coverImageUrl = 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80';
+            
             // Generate items table rows
             let itemsHTML = '';
             selectedItems.forEach((item, index) => {
@@ -903,118 +905,137 @@
             position: relative;
         }
         
-        /* PAGE 1 - COVER PAGE */
+        /* PAGE 1 - COVER PAGE (new design) */
         .cover-page {
             display: flex;
+            width: 297mm;
+            height: 210mm;
+            background: #000;
+            color: #f4f4f4;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Helvetica Neue', 'Arial', sans-serif;
         }
         
-        .left-panel {
-            width: 33.33%;
-            background: #000000;
-            color: #ffffff;
-            padding: 40px 20px;
+        .cover-left {
+            width: 58%;
+            padding: 36mm 24mm 22mm 24mm;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
         
-        .logo-text {
-            font-size: 32px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .company-details {
-            font-size: 11px;
-            line-height: 1.6;
-        }
-        
-        .company-details strong {
-            display: block;
-            margin-top: 8px;
-        }
-        
-        .prepared-by {
-            font-size: 11px;
-            margin-top: 20px;
-        }
-        
-        .middle-panel {
-            width: 33.33%;
-            background: #ffffff;
+        .cover-header {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
+            justify-content: space-between;
+            letter-spacing: 2px;
+            font-size: 10pt;
+            text-transform: uppercase;
         }
         
-        .quotation-title {
-            font-size: 56px;
-            font-weight: bold;
-            color: #000000;
-            margin-bottom: 60px;
+        .cover-title {
+            margin-top: 36mm;
+            text-align: left;
+            font-size: 34pt;
+            letter-spacing: 4px;
+            font-weight: 700;
         }
         
-        .client-name {
-            font-size: 20px;
-            font-weight: bold;
-            color: #000000;
+        .cover-dots {
+            margin: 12pt 0 20pt;
+            letter-spacing: 3px;
+            font-size: 12pt;
         }
         
-        .right-panel {
-            width: 33.33%;
-            background: #ffffff;
-            padding: 40px 30px;
+        .cover-client {
+            line-height: 1.6;
+            font-size: 12pt;
+            letter-spacing: 0.5px;
+        }
+        
+        .cover-client .client-name {
+            font-size: 13pt;
+        }
+        
+        .cover-footer {
+            font-size: 9pt;
+            line-height: 1.5;
+            letter-spacing: 0.3px;
+        }
+        
+        .cover-footer .brand {
+            font-weight: 700;
+            margin-top: 6pt;
+        }
+        
+        .cover-right {
+            width: 42%;
             position: relative;
+            background: #111;
+            display: flex;
+            align-items: stretch;
         }
         
-        .pid-box {
-            border: 2px solid #000000;
-            padding: 15px;
+        .cover-image {
+            flex: 1;
+            background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.4)), url('${coverImageUrl}');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .logo-badge {
+            position: absolute;
+            left: -56px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 220px;
+            height: 260px;
+            background: rgba(0,0,0,0.75);
+            border: 10px solid #111;
+            border-radius: 24px;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+        }
+        
+        .logo-badge-inner {
             text-align: center;
-            margin-bottom: 30px;
+            color: #f4f4f4;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
         
-        .pid-label {
-            font-size: 13px;
-            font-weight: bold;
+        .logo-mark {
+            font-size: 48px;
             margin-bottom: 8px;
         }
         
-        .pid-value {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .project-info {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 13px;
-        }
-        
-        .total-box {
+        .prep-bar {
             position: absolute;
-            bottom: 60px;
-            left: 30px;
-            right: 30px;
-            border: 1px solid #000000;
-        }
-        
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 15px;
-            background: #f5f5f5;
-            font-weight: bold;
-            font-size: 13px;
-        }
-        
-        .gst-note {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(12,12,12,0.85);
+            color: #f4f4f4;
+            padding: 12px 0 22px;
             text-align: center;
-            font-size: 10px;
-            color: #666;
+            letter-spacing: 1px;
+            font-size: 9pt;
+        }
+        
+        .prep-bar .label {
+            font-size: 8pt;
+            opacity: 0.8;
+        }
+        
+        .prep-bar .name {
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        
+        .validity {
+            font-size: 8pt;
+            letter-spacing: 1px;
             margin-top: 10px;
         }
         
@@ -1078,50 +1099,44 @@
     </style>
 </head>
 <body>
-    <!-- PAGE 1: COVER PAGE -->
+    <!-- PAGE 1: COVER PAGE (new design) -->
     <div class="page cover-page">
-        <div class="left-panel">
+        <div class="cover-left">
+            <div class="cover-header">
+                <div class="pid">PID ${pid}</div>
+                <div class="date">${quoteDate}</div>
+            </div>
+            
             <div>
-                <div class="logo-text">Spaceframe</div>
-                <div class="company-details">
-                    Mobile : +91 9953520512<br>
-                    Email : lakshay.arora@spaceframe.co.in<br>
-                    <strong>Spaceframe</strong>
-                    GST: 06DINPA6810A1ZS<br>
-                    2nd floor, iWorkk, 90, Mehrauli-Gurgaon Rd,<br>
-                    Industrial Development Area, Sector 16,<br>
-                    Gurugram, Haryana 122007
+                <div class="cover-title">QUOTATION</div>
+                <div class="cover-dots">•••••••••••••••••••••••••••</div>
+                <div class="cover-client">
+                    <div class="client-name">${clientName || 'Client Name'}</div>
+                    <div class="client-address">${siteAddress || 'Client Address'}</div>
                 </div>
             </div>
-            <div class="prepared-by">
-                Quotation Valid till ${validDays} days<br>
-                <strong>Prepared By:</strong><br>
-                ${preparedBy}
+            
+            <div class="cover-footer">
+                <div>Mobile : +91 9953520512</div>
+                <div>Email : lakshay.arora@spaceframe.co.in</div>
+                <div class="brand">Spaceframe</div>
+                <div>GST: 06DINPA6810A1ZS</div>
+                <div>Basement, B-127, near Signature Towers, South City I, Sector 30, Gurugram, Haryana 122001</div>
+                <div class="validity">QUOTATION VALID TILL ${validDays} DAYS</div>
             </div>
         </div>
         
-        <div class="middle-panel">
-            <div class="quotation-title">Quotation</div>
-            <div class="client-name">${clientName}</div>
-        </div>
-        
-        <div class="right-panel">
-            <div class="pid-box">
-                <div class="pid-label">PID</div>
-                <div class="pid-value">${pid}</div>
-            </div>
-            
-            <div class="project-info">
-                <strong>${projectName || clientName}</strong><br>
-                Date : ${quoteDate}
-            </div>
-            
-            <div class="total-box">
-                <div class="total-row">
-                    <span>MS Work</span>
-                    <span>₹ ${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <div class="cover-right">
+            <div class="cover-image"></div>
+            <div class="logo-badge">
+                <div class="logo-badge-inner">
+                    <div class="logo-mark">SF</div>
+                    <div>Spaceframe</div>
                 </div>
-                <div class="gst-note">GST 18% extra</div>
+            </div>
+            <div class="prep-bar">
+                <div class="label">PREPARED BY:</div>
+                <div class="name">${preparedBy}</div>
             </div>
         </div>
     </div>
