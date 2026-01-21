@@ -925,7 +925,20 @@
             // Use preloaded data URL, or fallback to file URL
             const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
             const coverImageUrl = coverImageDataUrl || (baseUrl + 'cover-background.jpg');
-            
+
+            // Format date as "DD Month YYYY"
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            let formattedDate = quoteDate;
+            if (quoteDate) {
+                const dateParts = quoteDate.split('-');
+                if (dateParts.length === 3) {
+                    const day = parseInt(dateParts[2], 10);
+                    const month = months[parseInt(dateParts[1], 10) - 1];
+                    const year = dateParts[0];
+                    formattedDate = `${day} ${month} ${year}`;
+                }
+            }
+
             // Generate items table rows
             let itemsHTML = '';
             selectedItems.forEach((item, index) => {
@@ -955,7 +968,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Quotation - PID ${pid}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -995,7 +1008,7 @@
         
         .cover-left {
             width: 58%;
-            padding: 36mm 24mm 12mm 24mm;
+            padding: 15mm 24mm 12mm 24mm;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -1010,19 +1023,25 @@
         }
         
         .cover-title {
-            margin-top: 36mm;
-            text-align: center;
+            text-align: left;
             font-size: 34pt;
             letter-spacing: 4px;
             font-weight: 700;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Libre Baskerville', 'Baskerville', serif;
         }
 
         .cover-dots {
             margin: 12pt 0 30pt;
             letter-spacing: 3px;
             font-size: 12pt;
-            text-align: center;
+            text-align: left;
+        }
+
+        .cover-middle {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .cover-client {
@@ -1076,7 +1095,7 @@
         .prep-bar {
             position: absolute;
             bottom: 0;
-            left: 20px;
+            left: 100px;
             right: 0;
             background: rgba(12,12,12,0.85);
             color: #f4f4f4;
@@ -1167,10 +1186,10 @@
         <div class="cover-left">
             <div class="cover-header">
                 <div class="pid">PID ${pid}</div>
-                <div class="date">${quoteDate}</div>
+                <div class="date">${formattedDate}</div>
             </div>
             
-            <div>
+            <div class="cover-middle">
                 <div class="cover-title">QUOTATION</div>
                 <div class="cover-dots">•••••••••••••••••••••••••••</div>
                 <div class="cover-client">
