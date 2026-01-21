@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spaceframe - Database Setup</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 2px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 4px solid #000000;
+        }
+
+        .logo-text {
+            font-size: 42px;
+            font-weight: 900;
+            color: #000000;
+            letter-spacing: 8px;
+            font-family: 'Arial Black', sans-serif;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: #666666;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        h1 {
+            color: #000000;
+            font-size: 24px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 20px;
+        }
+
+        .subtitle {
+            color: #666666;
+            font-size: 13px;
+            margin-top: 10px;
+            letter-spacing: 1px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+            padding: 30px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-left: 4px solid #000000;
+        }
+
+        .section-title {
+            font-size: 14px;
+            color: #000000;
+            margin-bottom: 25px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #000000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333333;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #dddddd;
+            background: #ffffff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: 'Arial', sans-serif;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #000000;
+            background: #fafafa;
+        }
+
+        small {
+            color: #999999;
+            font-size: 11px;
+            display: block;
+            margin-top: 6px;
+        }
+
+        button {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 16px 32px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            font-family: 'Arial', sans-serif;
+        }
+
+        button:hover {
+            background-color: #333333;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background-color: #666666;
+        }
+
+        .btn-secondary:hover {
+            background-color: #555555;
+        }
+
+        .btn-success {
+            background-color: #006600;
+        }
+
+        .btn-success:hover {
+            background-color: #005500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .loading, .error, .success {
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-left: 4px solid;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        .loading {
+            background-color: #f0f0f0;
+            border-color: #666666;
+            color: #333333;
+        }
+
+        .error {
+            background-color: #ffe6e6;
+            border-color: #cc0000;
+            color: #cc0000;
+        }
+
+        .success {
+            background-color: #e6ffe6;
+            border-color: #006600;
+            color: #006600;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background-color: #00cc00;
+        }
+
+        .status-disconnected {
+            background-color: #cc0000;
+        }
+
+        .status-box {
+            padding: 15px 20px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 18px 40px;
+            background: #000;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: #333;
+            transform: translateY(-2px);
+        }
+
+        .instructions {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-top: 20px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .instructions h3 {
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+
+        .instructions code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+
+            button, .nav-link {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-text">SPACEFRAME</div>
+            <div class="tagline">Architecture & Design</div>
+            <h1>Database Setup</h1>
+            <p class="subtitle">Configure your Google Sheets connections</p>
+        </div>
+
+        <!-- Items Database Section -->
+        <div class="section">
+            <div class="section-title">1. Items Database (Product Catalog)</div>
+
+            <div class="status-box">
+                <div>
+                    <span class="status-indicator" id="itemsStatusIndicator"></span>
+                    <span id="itemsStatusText">Not connected</span>
+                </div>
+                <span id="itemsCount"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Google Sheet ID:</label>
+                <input type="text" id="sheetId" placeholder="Enter your Google Sheet ID">
+                <small>Find this in your Google Sheet URL: docs.google.com/spreadsheets/d/<strong>[SHEET_ID]</strong>/edit</small>
+            </div>
+
+            <div class="button-group">
+                <button onclick="testItemsConnection()">Test Connection</button>
+                <button class="btn-secondary" onclick="showItemsInstructions()">Setup Instructions</button>
+            </div>
+
+            <div id="itemsMessage"></div>
+
+            <div class="instructions" id="itemsInstructions" style="display: none;">
+                <h3>Items Sheet Setup</h3>
+                <ol>
+                    <li>Create a Google Sheet or use an existing one</li>
+                    <li>Create a sheet named <code>Items</code></li>
+                    <li>Add these column headers in Row 1:
+                        <br><code>S.No | Super Category | Category Type | Sub Category | Brand | SKU Name | Description | Unit | Minimum Qty | Rate</code>
+                    </li>
+                    <li>Add your product data in the rows below</li>
+                    <li>Set sharing to <strong>"Anyone with the link"</strong> can view</li>
+                    <li>Copy the Sheet ID from the URL and paste above</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Quotations Database Section -->
+        <div class="section">
+            <div class="section-title">2. Quotations Database (Save/Load Quotes)</div>
+
+            <div class="status-box">
+                <div>
+                    <span class="status-indicator" id="quotationsStatusIndicator"></span>
+                    <span id="quotationsStatusText">Not connected</span>
+                </div>
+                <span id="quotationsCount"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Google Apps Script Web App URL:</label>
+                <input type="text" id="quotationsUrl" placeholder="https://script.google.com/macros/s/.../exec">
+                <small>Deploy the Apps Script from your Quotations Sheet and paste the Web App URL here</small>
+            </div>
+
+            <div class="button-group">
+                <button onclick="testQuotationsConnection()">Test Connection</button>
+                <button class="btn-secondary" onclick="showQuotationsInstructions()">Setup Instructions</button>
+                <button class="btn-secondary" onclick="showAppsScriptCode()">Get Apps Script Code</button>
+            </div>
+
+            <div id="quotationsMessage"></div>
+
+            <div class="instructions" id="quotationsInstructions" style="display: none;">
+                <h3>Quotations Database Setup</h3>
+                <ol>
+                    <li>Create a <strong>new</strong> Google Sheet named "Spaceframe Quotations Database"</li>
+                    <li>Rename the first sheet to <code>Quotations</code></li>
+                    <li>Add these column headers in Row 1:
+                        <br><code>QuotationID | PID | ClientName | ProjectName | SiteAddress | PreparedBy | QuoteDate | ValidDays | Items | Subtotal | GST | GrandTotal | CreatedAt | Status</code>
+                    </li>
+                    <li>Go to <strong>Extensions > Apps Script</strong></li>
+                    <li>Delete any existing code and paste the Apps Script code (click "Get Apps Script Code" above)</li>
+                    <li>Save the project (Ctrl+S)</li>
+                    <li>Click <strong>Deploy > New deployment</strong></li>
+                    <li>Select type: <strong>Web app</strong></li>
+                    <li>Set "Execute as": <strong>Me</strong></li>
+                    <li>Set "Who has access": <strong>Anyone</strong></li>
+                    <li>Click <strong>Deploy</strong> and authorize</li>
+                    <li>Copy the Web App URL and paste above</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Save and Continue -->
+        <div class="section">
+            <div class="section-title">3. Save & Continue</div>
+            <p style="margin-bottom: 20px; color: #666;">Your settings are automatically saved to this browser. Click below to go to the Quotation Maker.</p>
+
+            <a href="quotation-maker.html" class="nav-link">Open Quotation Maker</a>
+        </div>
+    </div>
+
+    <script>
+        // Load saved settings on page load
+        window.addEventListener('load', function() {
+            const savedSheetId = localStorage.getItem('itemsSheetId');
+            const savedQuotationsUrl = localStorage.getItem('quotationsWebAppUrl');
+
+            if (savedSheetId) {
+                document.getElementById('sheetId').value = savedSheetId;
+                updateItemsStatus(true);
+            } else {
+                updateItemsStatus(false);
+            }
+
+            if (savedQuotationsUrl) {
+                document.getElementById('quotationsUrl').value = savedQuotationsUrl;
+                updateQuotationsStatus(true);
+            } else {
+                updateQuotationsStatus(false);
+            }
+        });
+
+        // Auto-save on input change
+        document.getElementById('sheetId').addEventListener('change', function() {
+            localStorage.setItem('itemsSheetId', this.value.trim());
+        });
+
+        document.getElementById('quotationsUrl').addEventListener('change', function() {
+            localStorage.setItem('quotationsWebAppUrl', this.value.trim());
+        });
+
+        // Update status indicators
+        function updateItemsStatus(connected, count) {
+            const indicator = document.getElementById('itemsStatusIndicator');
+            const text = document.getElementById('itemsStatusText');
+            const countEl = document.getElementById('itemsCount');
+
+            if (connected) {
+                indicator.className = 'status-indicator status-connected';
+                text.textContent = 'Connected';
+                if (count) countEl.textContent = count + ' items loaded';
+            } else {
+                indicator.className = 'status-indicator status-disconnected';
+                text.textContent = 'Not connected';
+                countEl.textContent = '';
+            }
+        }
+
+        function updateQuotationsStatus(connected, count) {
+            const indicator = document.getElementById('quotationsStatusIndicator');
+            const text = document.getElementById('quotationsStatusText');
+            const countEl = document.getElementById('quotationsCount');
+
+            if (connected) {
+                indicator.className = 'status-indicator status-connected';
+                text.textContent = 'Connected';
+                if (count !== undefined) countEl.textContent = count + ' quotations saved';
+            } else {
+                indicator.className = 'status-indicator status-disconnected';
+                text.textContent = 'Not connected';
+                countEl.textContent = '';
+            }
+        }
+
+        // Test Items Connection
+        async function testItemsConnection() {
+            const sheetId = document.getElementById('sheetId').value.trim();
+
+            if (!sheetId) {
+                showMessage('itemsMessage', 'Please enter a Google Sheet ID', 'error');
+                return;
+            }
+
+            showMessage('itemsMessage', 'Testing connection...', 'loading');
+
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Items`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('Cannot access sheet');
+                }
+
+                const text = await response.text();
+                const jsonString = text.substring(47).slice(0, -2);
+                const json = JSON.parse(jsonString);
+
+                const rows = json.table.rows;
+                const itemCount = rows.filter(row => row.c && row.c[5]?.v && row.c[9]?.v > 0).length;
+
+                if (itemCount === 0) {
+                    throw new Error('No valid items found');
+                }
+
+                // Save to localStorage
+                localStorage.setItem('itemsSheetId', sheetId);
+
+                updateItemsStatus(true, itemCount);
+                showMessage('itemsMessage', `Connection successful! Found ${itemCount} items.`, 'success');
+
+            } catch (error) {
+                updateItemsStatus(false);
+                showMessage('itemsMessage', 'Connection failed. Check: 1) Sheet ID is correct, 2) Sheet is shared as "Anyone with link", 3) Sheet has an "Items" tab.', 'error');
+            }
+        }
+
+        // Test Quotations Connection
+        async function testQuotationsConnection() {
+            const url = document.getElementById('quotationsUrl').value.trim();
+
+            if (!url) {
+                showMessage('quotationsMessage', 'Please enter the Web App URL', 'error');
+                return;
+            }
+
+            if (!url.startsWith('https://script.google.com/')) {
+                showMessage('quotationsMessage', 'Invalid URL. Must start with https://script.google.com/', 'error');
+                return;
+            }
+
+            showMessage('quotationsMessage', 'Testing connection...', 'loading');
+
+            try {
+                const response = await fetch(`${url}?action=list`);
+
+                if (!response.ok) {
+                    throw new Error('Cannot access Web App');
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const count = result.data ? result.data.length : 0;
+
+                    // Save to localStorage
+                    localStorage.setItem('quotationsWebAppUrl', url);
+
+                    updateQuotationsStatus(true, count);
+                    showMessage('quotationsMessage', `Connection successful! Found ${count} saved quotations.`, 'success');
+                } else {
+                    throw new Error(result.message || 'Invalid response');
+                }
+
+            } catch (error) {
+                updateQuotationsStatus(false);
+                showMessage('quotationsMessage', 'Connection failed. Check: 1) URL is correct, 2) Web App is deployed, 3) Access is set to "Anyone".', 'error');
+            }
+        }
+
+        // Show/hide instructions
+        function showItemsInstructions() {
+            const el = document.getElementById('itemsInstructions');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showQuotationsInstructions() {
+            const el = document.getElementById('quotationsInstructions');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Show message
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.className = type;
+            el.textContent = message;
+            el.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    el.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Show Apps Script Code
+        function showAppsScriptCode() {
+            const scriptCode = `// ===== SPACEFRAME QUOTATIONS DATABASE - APPS SCRIPT =====
+// Copy this entire script to your Google Apps Script editor
+
+function doGet(e) {
+  const action = e.parameter.action || 'list';
+  const id = e.parameter.id;
+
+  try {
+    if (action === 'list') {
+      return listQuotations();
+    } else if (action === 'get' && id) {
+      return getQuotation(id);
+    } else {
+      return jsonResponse({ status: 'error', message: 'Invalid action' });
+    }
+  } catch (error) {
+    return jsonResponse({ status: 'error', message: error.toString() });
+  }
+}
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+
+    if (data.action === 'save') {
+      return saveQuotation(data.data);
+    } else {
+      return jsonResponse({ status: 'error', message: 'Invalid action' });
+    }
+  } catch (error) {
+    return jsonResponse({ status: 'error', message: error.toString() });
+  }
+}
+
+function listQuotations() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quotations');
+  const data = sheet.getDataRange().getValues();
+
+  const quotations = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) {
+      quotations.push({
+        quotationId: data[i][0],
+        pid: data[i][1],
+        clientName: data[i][2],
+        projectName: data[i][3],
+        quoteDate: data[i][6],
+        status: data[i][13] || 'Draft'
+      });
+    }
+  }
+
+  return jsonResponse({ status: 'success', data: quotations });
+}
+
+function getQuotation(quotationId) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quotations');
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === quotationId) {
+      return jsonResponse({
+        status: 'success',
+        data: {
+          quotationId: data[i][0],
+          pid: data[i][1],
+          clientName: data[i][2],
+          projectName: data[i][3],
+          siteAddress: data[i][4],
+          preparedBy: data[i][5],
+          quoteDate: data[i][6],
+          validDays: data[i][7],
+          items: data[i][8],
+          subtotal: data[i][9],
+          gst: data[i][10],
+          grandTotal: data[i][11],
+          createdAt: data[i][12],
+          status: data[i][13]
+        }
+      });
+    }
+  }
+
+  return jsonResponse({ status: 'error', message: 'Quotation not found' });
+}
+
+function saveQuotation(quotationData) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quotations');
+  const data = sheet.getDataRange().getValues();
+
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === quotationData.quotationId) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  const rowData = [
+    quotationData.quotationId,
+    quotationData.pid,
+    quotationData.clientName,
+    quotationData.projectName,
+    quotationData.siteAddress,
+    quotationData.preparedBy,
+    quotationData.quoteDate,
+    quotationData.validDays,
+    quotationData.items,
+    quotationData.subtotal,
+    quotationData.gst,
+    quotationData.grandTotal,
+    rowIndex === -1 ? new Date().toISOString() : data[rowIndex-1][12],
+    quotationData.status
+  ];
+
+  if (rowIndex === -1) {
+    sheet.appendRow(rowData);
+  } else {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+  }
+
+  return jsonResponse({ status: 'success', message: 'Quotation saved', quotationId: quotationData.quotationId });
+}
+
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+            const codeWindow = window.open('', '_blank', 'width=800,height=600');
+            const escapedCode = scriptCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const htmlContent = [
+                '<html>',
+                '<head>',
+                '<title>Apps Script Code - Copy This</title>',
+                '<style>',
+                'body { font-family: monospace; padding: 20px; background: #f5f5f5; }',
+                'h2 { color: #333; }',
+                'pre { background: #fff; padding: 20px; border: 1px solid #ddd; overflow: auto; white-space: pre-wrap; }',
+                'button { background: #000; color: #fff; padding: 15px 30px; border: none; cursor: pointer; font-size: 14px; margin: 10px 5px; }',
+                'button:hover { background: #333; }',
+                '.copied { background: #006600 !important; }',
+                '</style>',
+                '</head>',
+                '<body>',
+                '<h2>Apps Script Code for Quotations Database</h2>',
+                '<p>Copy this code and paste it into your Google Apps Script editor:</p>',
+                '<button onclick="copyCode()">Copy to Clipboard</button>',
+                '<button onclick="window.close()">Close</button>',
+                '<pre id="code">' + escapedCode + '</pre>',
+                '<script>',
+                'function copyCode() {',
+                '  const code = document.getElementById("code").innerText;',
+                '  navigator.clipboard.writeText(code).then(function() {',
+                '    event.target.textContent = "Copied!";',
+                '    event.target.classList.add("copied");',
+                '    setTimeout(function() {',
+                '      event.target.textContent = "Copy to Clipboard";',
+                '      event.target.classList.remove("copied");',
+                '    }, 2000);',
+                '  });',
+                '}',
+                '<\/script>',
+                '</body>',
+                '</html>'
+            ].join('\n');
+            codeWindow.document.write(htmlContent);
+            codeWindow.document.close();
+        }
+    </script>
+</body>
+</html>

@@ -4,8 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spaceframe Quotation Maker</title>
-    <meta http-equiv="refresh" content="0; url=quotation-maker.html" />
-    <link rel="canonical" href="quotation-maker.html" />
     <style>
       body {
         font-family: Arial, Helvetica, sans-serif;
@@ -19,27 +17,70 @@
       .card {
         background: #fff;
         border: 1px solid #e0e0e0;
-        padding: 24px;
-        max-width: 560px;
+        padding: 40px;
+        max-width: 500px;
         width: calc(100% - 32px);
+        text-align: center;
       }
-      a {
-        color: #000;
+      .logo {
+        font-size: 32px;
+        font-weight: 900;
+        letter-spacing: 6px;
+        margin-bottom: 10px;
+      }
+      .tagline {
+        font-size: 11px;
+        color: #666;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 30px;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 0 0 20px;
         font-weight: 700;
+      }
+      .btn {
+        display: block;
+        padding: 16px 24px;
+        margin: 12px 0;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s;
+      }
+      .btn-primary {
+        background: #000;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #333;
+      }
+      .btn-secondary {
+        background: #fff;
+        color: #000;
+        border: 2px solid #000;
+      }
+      .btn-secondary:hover {
+        background: #f5f5f5;
       }
     </style>
   </head>
   <body>
     <div class="card">
-      <h2 style="margin: 0 0 12px">Opening Quotation Maker…</h2>
-      <p style="margin: 0 0 8px">
-        If you’re not redirected automatically, open:
-        <a href="quotation-maker.html">quotation-maker.html</a>
-      </p>
+      <div class="logo">SPACEFRAME</div>
+      <div class="tagline">Architecture & Design</div>
+      <h2>Quotation System</h2>
+      <a href="quotation-maker.html" class="btn btn-primary">Open Quotation Maker</a>
+      <a href="setup.html" class="btn btn-secondary">Database Setup</a>
     </div>
     <script>
-      // Fallback redirect for browsers that ignore meta refresh
-      window.location.replace("quotation-maker.html");
+      // Auto-redirect to quotation maker if already configured
+      if (localStorage.getItem('itemsSheetId')) {
+        window.location.replace("quotation-maker.html");
+      }
     </script>
   </body>
 </html>

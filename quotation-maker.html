@@ -339,31 +339,21 @@
             <p class="subtitle">Professional BOQ Generation System</p>
         </div>
         
-        <!-- Setup Section - Items Database -->
-        <div class="section">
-            <div class="section-title">⚙ Items Database Configuration</div>
-            <div class="form-group">
-                <label>Google Sheet ID (Items Catalog):</label>
-                <input type="text" id="sheetId" placeholder="Enter your Google Sheet ID" value="1MRhSpp9Nuj4OTqdZjRsNylXWGEFushMNsCzwQiPA9v0">
-                <small>Find this in your Google Sheet URL between /d/ and /edit</small>
+        <!-- Connection Status Section -->
+        <div class="section" id="connectionSection">
+            <div class="section-title">Database Connection</div>
+            <div id="connectionStatus" style="display: flex; gap: 30px; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="itemsStatusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #cc0000;"></span>
+                    <span>Items: <strong id="itemsStatusText">Not configured</strong></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="quotationsStatusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #cc0000;"></span>
+                    <span>Quotations: <strong id="quotationsStatusText">Not configured</strong></span>
+                </div>
+                <a href="setup.html" style="margin-left: auto; color: #000; font-weight: 700; text-decoration: underline;">Database Setup</a>
             </div>
-            <button onclick="loadSheetData()">Connect to Items Database</button>
-            <div id="loadingMessage"></div>
-        </div>
-
-        <!-- Setup Section - Quotations Database -->
-        <div class="section">
-            <div class="section-title">💾 Quotations Database Configuration</div>
-            <div class="form-group">
-                <label>Quotations Web App URL:</label>
-                <input type="text" id="quotationsUrl" placeholder="Paste your Google Apps Script Web App URL here">
-                <small>Deploy the Apps Script from your Quotations Google Sheet and paste the Web App URL here</small>
-            </div>
-            <div class="button-group" style="justify-content: flex-start; margin-top: 15px;">
-                <button onclick="connectQuotationsDb()">Connect to Quotations DB</button>
-                <button class="btn-secondary" onclick="showSetupInstructions()">Setup Instructions</button>
-            </div>
-            <div id="quotationsMessage"></div>
+            <div id="loadingMessage" style="margin-top: 15px;"></div>
         </div>
         
         <!-- Load Saved Quotation Section -->
@@ -1950,13 +1940,76 @@ function jsonResponse(data) {
             codeWindow.document.close();
         }
 
-        // Auto-load saved URL on page load
-        window.addEventListener('load', function() {
-            const savedUrl = localStorage.getItem('quotationsWebAppUrl');
-            if (savedUrl) {
-                document.getElementById('quotationsUrl').value = savedUrl;
+        // Auto-connect on page load
+        window.addEventListener('load', async function() {
+            const savedSheetId = localStorage.getItem('itemsSheetId');
+            const savedQuotationsUrl = localStorage.getItem('quotationsWebAppUrl');
+
+            // Check if databases are configured
+            if (!savedSheetId) {
+                document.getElementById('itemsStatusText').textContent = 'Not configured';
+                document.getElementById('itemsStatusDot').style.background = '#cc0000';
+                showMessage('Please configure your databases first.', 'error');
+                return;
             }
+
+            // Auto-connect to Items Database
+            showMessage('Connecting to databases...', 'loading');
+
+            try {
+                await loadSheetDataFromStorage(savedSheetId);
+                document.getElementById('itemsStatusText').textContent = 'Connected (' + allItems.length + ' items)';
+                document.getElementById('itemsStatusDot').style.background = '#00cc00';
+
+                // Show the form sections
+                document.getElementById('quoteSection').style.display = 'block';
+                document.getElementById('clientSection').style.display = 'block';
+                document.getElementById('itemsSection').style.display = 'block';
+                document.getElementById('quoteDate').valueAsDate = new Date();
+                populateCategories();
+
+            } catch (error) {
+                document.getElementById('itemsStatusText').textContent = 'Connection failed';
+                document.getElementById('itemsStatusDot').style.background = '#cc0000';
+                showMessage('Failed to connect to Items database. Check your setup.', 'error');
+                return;
+            }
+
+            // Auto-connect to Quotations Database (if configured)
+            if (savedQuotationsUrl) {
+                quotationsWebAppUrl = savedQuotationsUrl;
+                try {
+                    await loadQuotationsList();
+                    document.getElementById('quotationsStatusText').textContent = 'Connected (' + savedQuotations.length + ' quotes)';
+                    document.getElementById('quotationsStatusDot').style.background = '#00cc00';
+                    document.getElementById('loadQuotationSection').style.display = 'block';
+                } catch (error) {
+                    document.getElementById('quotationsStatusText').textContent = 'Connection failed';
+                    document.getElementById('quotationsStatusDot').style.background = '#cc0000';
+                }
+            } else {
+                document.getElementById('quotationsStatusText').textContent = 'Not configured';
+            }
+
+            showMessage('Connected successfully!', 'success');
         });
+
+        // Load sheet data from storage (without UI prompts)
+        async function loadSheetDataFromStorage(sheetId) {
+            await loadItems(sheetId);
+
+            try {
+                await loadCompanyDetails(sheetId);
+            } catch (e) {
+                setDefaultCompanyDetails();
+            }
+
+            try {
+                await loadTermsConditions(sheetId);
+            } catch (e) {
+                // Terms are optional
+            }
+        }
 
         // ===== UTILITY FUNCTIONS =====
         function showMessage(message, type) {
