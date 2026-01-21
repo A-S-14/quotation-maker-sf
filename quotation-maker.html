@@ -847,30 +847,57 @@
         }
         
         // ===== GENERATE PDF USING PRINT =====
+        // Preloaded cover image as data URL
+        let coverImageDataUrl = '';
+
+        // Preload cover image on page load
+        function preloadCoverImage() {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    coverImageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    console.log('Cover image preloaded successfully');
+                } catch (e) {
+                    console.error('Failed to convert cover image:', e);
+                }
+            };
+            img.onerror = function() {
+                console.error('Failed to load cover image');
+            };
+            const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            img.src = baseUrl + 'cover-background.jpg';
+        }
+
         function generatePDF() {
             const pid = document.getElementById('pid').value.trim();
             const clientName = document.getElementById('clientName').value.trim();
             const preparedBy = document.getElementById('preparedBy').value.trim();
             const quoteDate = document.getElementById('quoteDate').value;
             const siteAddress = document.getElementById('siteAddress').value.trim();
-            
+
             if (!pid || !clientName || !preparedBy || !quoteDate) {
                 alert('Please fill in: PID, Client Name, Prepared By, and Quote Date');
                 return;
             }
-            
+
             if (selectedItems.length === 0) {
                 alert('Please add at least one item to the quotation');
                 return;
             }
-            
+
             const projectName = document.getElementById('projectName').value.trim();
             const validDays = document.getElementById('validDays').value || '30';
-            
+
             const subtotal = selectedItems.reduce((sum, item) => sum + item.amount, 0);
             const totalGST = selectedItems.reduce((sum, item) => sum + (item.amount * item.gst / 100), 0);
             const grandTotal = subtotal + totalGST;
-            
+
             // Create a new window with the PDF-ready HTML
             createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
         }
@@ -879,43 +906,25 @@
             // Open new window
             const printWindow = window.open('', '_blank');
 
-            // Generate the HTML content
+            // Generate the HTML content (uses preloaded data URL for image)
             const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
 
             // Write to new window
             printWindow.document.write(htmlContent);
             printWindow.document.close();
 
-            // Wait for cover image to load before printing
+            // Since image is embedded as data URL, just wait for document ready
             printWindow.onload = function() {
-                const coverImg = printWindow.document.getElementById('coverImg');
-                if (coverImg) {
-                    if (coverImg.complete) {
-                        // Image already loaded
-                        setTimeout(() => printWindow.print(), 300);
-                    } else {
-                        // Wait for image to load
-                        coverImg.onload = function() {
-                            setTimeout(() => printWindow.print(), 300);
-                        };
-                        coverImg.onerror = function() {
-                            // Print anyway if image fails
-                            console.warn('Cover image failed to load');
-                            setTimeout(() => printWindow.print(), 300);
-                        };
-                    }
-                } else {
-                    setTimeout(() => printWindow.print(), 500);
-                }
+                setTimeout(() => printWindow.print(), 500);
             };
 
             showMessage('✓ PDF preview opened! Click Print and choose "Save as PDF"', 'success');
         }
         
         function generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
-            // Build absolute URL for cover image (works in new window)
+            // Use preloaded data URL, or fallback to file URL
             const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            const coverImageUrl = baseUrl + 'cover-background.jpg';
+            const coverImageUrl = coverImageDataUrl || (baseUrl + 'cover-background.jpg');
             
             // Generate items table rows
             let itemsHTML = '';
@@ -1999,6 +2008,9 @@ function jsonResponse(data) {
 
         // Auto-connect on page load
         window.addEventListener('load', async function() {
+            // Preload cover image for PDF generation
+            preloadCoverImage();
+
             const savedSheetId = localStorage.getItem('itemsSheetId');
             const savedQuotationsUrl = localStorage.getItem('quotationsWebAppUrl');
 
