@@ -339,26 +339,74 @@
             <p class="subtitle">Professional BOQ Generation System</p>
         </div>
         
-        <!-- Setup Section -->
+        <!-- Setup Section - Items Database -->
         <div class="section">
-            <div class="section-title">⚙ System Configuration</div>
+            <div class="section-title">⚙ Items Database Configuration</div>
             <div class="form-group">
-                <label>Google Sheet ID:</label>
+                <label>Google Sheet ID (Items Catalog):</label>
                 <input type="text" id="sheetId" placeholder="Enter your Google Sheet ID" value="1MRhSpp9Nuj4OTqdZjRsNylXWGEFushMNsCzwQiPA9v0">
                 <small>Find this in your Google Sheet URL between /d/ and /edit</small>
             </div>
-            <button onclick="loadSheetData()">Connect to Database</button>
+            <button onclick="loadSheetData()">Connect to Items Database</button>
             <div id="loadingMessage"></div>
         </div>
+
+        <!-- Setup Section - Quotations Database -->
+        <div class="section">
+            <div class="section-title">💾 Quotations Database Configuration</div>
+            <div class="form-group">
+                <label>Quotations Web App URL:</label>
+                <input type="text" id="quotationsUrl" placeholder="Paste your Google Apps Script Web App URL here">
+                <small>Deploy the Apps Script from your Quotations Google Sheet and paste the Web App URL here</small>
+            </div>
+            <div class="button-group" style="justify-content: flex-start; margin-top: 15px;">
+                <button onclick="connectQuotationsDb()">Connect to Quotations DB</button>
+                <button class="btn-secondary" onclick="showSetupInstructions()">Setup Instructions</button>
+            </div>
+            <div id="quotationsMessage"></div>
+        </div>
         
+        <!-- Load Saved Quotation Section -->
+        <div class="section" id="loadQuotationSection" style="display: none;">
+            <div class="section-title">📂 Load Saved Quotation</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Select Quotation to Load:</label>
+                    <select id="savedQuotationSelect" onchange="loadSelectedQuotation()">
+                        <option value="">-- Select a Saved Quotation --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn-secondary" onclick="refreshQuotationsList()">🔄 Refresh List</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Quotation Details -->
         <div class="section" id="quoteSection" style="display: none;">
             <div class="section-title">📄 Quotation Details</div>
             <div class="form-row-3">
                 <div class="form-group">
+                    <label>Quotation ID:</label>
+                    <input type="text" id="quotationId" placeholder="Auto-generated (QT-YYYY-XXXX)" readonly style="background: #f0f0f0; cursor: not-allowed;">
+                    <small>Auto-generated when you save for the first time</small>
+                </div>
+                <div class="form-group">
                     <label>PID (Project ID): *</label>
                     <input type="text" id="pid" placeholder="e.g., 1303" required>
                 </div>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select id="quotationStatus" onchange="updateQuotationStatus()">
+                        <option value="Draft">Draft</option>
+                        <option value="Sent">Sent</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row-3">
                 <div class="form-group">
                     <label>Quotation Date: *</label>
                     <input type="date" id="quoteDate" required>
@@ -367,10 +415,10 @@
                     <label>Valid Till (Days):</label>
                     <input type="number" id="validDays" value="30" min="1">
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Prepared By: *</label>
-                <input type="text" id="preparedBy" placeholder="e.g., Ar. Lakshay Arora" required>
+                <div class="form-group">
+                    <label>Prepared By: *</label>
+                    <input type="text" id="preparedBy" placeholder="e.g., Ar. Lakshay Arora" required>
+                </div>
             </div>
         </div>
         
@@ -466,11 +514,13 @@
             </table>
         </div>
         
-        <!-- Generate PDF Section -->
+        <!-- Action Buttons Section -->
         <div class="button-group" id="pdfSection" style="display: none;">
-            <button class="btn-success" onclick="generatePDF()">📄 Download Quotation PDF</button>
+            <button class="btn-success" onclick="saveQuotation()">💾 Save Quotation</button>
+            <button class="btn-success" onclick="generatePDF()">📄 Download PDF</button>
             <button class="btn-secondary" onclick="resetForm()">🔄 New Quotation</button>
         </div>
+        <div id="saveMessage" style="text-align: center; margin-top: 15px;"></div>
     </div>
 
     <script>
@@ -480,6 +530,12 @@
         let companyDetails = {};
         let termsConditions = [];
         let selectedItems = [];
+
+        // Quotations Database Variables
+        let quotationsWebAppUrl = ''; // Google Apps Script Web App URL for Quotations sheet
+        let savedQuotations = [];
+        let currentQuotationId = ''; // Currently loaded quotation ID
+        let quotationStatus = 'Draft'; // Draft, Sent, Approved, Rejected
         
         // ===== LOAD DATA FROM GOOGLE SHEETS =====
         async function loadSheetData() {
@@ -805,6 +861,7 @@
             const clientName = document.getElementById('clientName').value.trim();
             const preparedBy = document.getElementById('preparedBy').value.trim();
             const quoteDate = document.getElementById('quoteDate').value;
+            const siteAddress = document.getElementById('siteAddress').value.trim();
             
             if (!pid || !clientName || !preparedBy || !quoteDate) {
                 alert('Please fill in: PID, Client Name, Prepared By, and Quote Date');
@@ -824,15 +881,15 @@
             const grandTotal = subtotal + totalGST;
             
             // Create a new window with the PDF-ready HTML
-            createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST);
+            createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
         }
         
-        function createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST) {
+        function createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
             // Open new window
             const printWindow = window.open('', '_blank');
             
             // Generate the HTML content
-            const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST);
+            const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
             
             // Write to new window
             printWindow.document.write(htmlContent);
@@ -848,7 +905,10 @@
             showMessage('✓ PDF preview opened! Click Print and choose "Save as PDF"', 'success');
         }
         
-        function generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST) {
+        function generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
+            // Use local cover image - add your image file as 'cover-background.jpg' in the repo root
+            const coverImageUrl = './cover-background.jpg';
+            
             // Generate items table rows
             let itemsHTML = '';
             selectedItems.forEach((item, index) => {
@@ -903,118 +963,110 @@
             position: relative;
         }
         
-        /* PAGE 1 - COVER PAGE */
+        /* PAGE 1 - COVER PAGE (new design) */
         .cover-page {
             display: flex;
-        }
-        
-        .left-panel {
-            width: 33.33%;
-            background: #000000;
-            color: #ffffff;
-            padding: 40px 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        
-        .logo-text {
-            font-size: 32px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .company-details {
-            font-size: 11px;
-            line-height: 1.6;
-        }
-        
-        .company-details strong {
-            display: block;
-            margin-top: 8px;
-        }
-        
-        .prepared-by {
-            font-size: 11px;
-            margin-top: 20px;
-        }
-        
-        .middle-panel {
-            width: 33.33%;
-            background: #ffffff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-        }
-        
-        .quotation-title {
-            font-size: 56px;
-            font-weight: bold;
-            color: #000000;
-            margin-bottom: 60px;
-        }
-        
-        .client-name {
-            font-size: 20px;
-            font-weight: bold;
-            color: #000000;
-        }
-        
-        .right-panel {
-            width: 33.33%;
-            background: #ffffff;
-            padding: 40px 30px;
+            width: 297mm;
+            height: 210mm;
+            background: #000;
+            color: #f4f4f4;
             position: relative;
+            overflow: hidden;
+            font-family: 'Helvetica Neue', 'Arial', sans-serif;
         }
         
-        .pid-box {
-            border: 2px solid #000000;
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 30px;
+        .cover-left {
+            width: 58%;
+            padding: 36mm 24mm 22mm 24mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         
-        .pid-label {
-            font-size: 13px;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-        
-        .pid-value {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .project-info {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 13px;
-        }
-        
-        .total-box {
-            position: absolute;
-            bottom: 60px;
-            left: 30px;
-            right: 30px;
-            border: 1px solid #000000;
-        }
-        
-        .total-row {
+        .cover-header {
             display: flex;
             justify-content: space-between;
-            padding: 12px 15px;
-            background: #f5f5f5;
-            font-weight: bold;
-            font-size: 13px;
+            letter-spacing: 2px;
+            font-size: 10pt;
+            text-transform: uppercase;
         }
         
-        .gst-note {
+        .cover-title {
+            margin-top: 36mm;
+            text-align: left;
+            font-size: 34pt;
+            letter-spacing: 4px;
+            font-weight: 700;
+        }
+        
+        .cover-dots {
+            margin: 12pt 0 20pt;
+            letter-spacing: 3px;
+            font-size: 12pt;
+        }
+        
+        .cover-client {
+            line-height: 1.6;
+            font-size: 12pt;
+            letter-spacing: 0.5px;
+        }
+        
+        .cover-client .client-name {
+            font-size: 13pt;
+        }
+        
+        .cover-footer {
+            font-size: 9pt;
+            line-height: 1.5;
+            letter-spacing: 0.3px;
+        }
+        
+        .cover-footer .brand {
+            font-weight: 700;
+            margin-top: 6pt;
+        }
+        
+        .cover-right {
+            width: 42%;
+            position: relative;
+            background: #111;
+            display: flex;
+            align-items: stretch;
+        }
+        
+        .cover-image {
+            flex: 1;
+            background-image: url('${coverImageUrl}');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .prep-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(12,12,12,0.85);
+            color: #f4f4f4;
+            padding: 12px 0 22px;
             text-align: center;
-            font-size: 10px;
-            color: #666;
+            letter-spacing: 1px;
+            font-size: 9pt;
+        }
+        
+        .prep-bar .label {
+            font-size: 8pt;
+            opacity: 0.8;
+        }
+        
+        .prep-bar .name {
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        
+        .validity {
+            font-size: 8pt;
+            letter-spacing: 1px;
             margin-top: 10px;
         }
         
@@ -1078,50 +1130,38 @@
     </style>
 </head>
 <body>
-    <!-- PAGE 1: COVER PAGE -->
+    <!-- PAGE 1: COVER PAGE (new design) -->
     <div class="page cover-page">
-        <div class="left-panel">
+        <div class="cover-left">
+            <div class="cover-header">
+                <div class="pid">PID ${pid}</div>
+                <div class="date">${quoteDate}</div>
+            </div>
+            
             <div>
-                <div class="logo-text">Spaceframe</div>
-                <div class="company-details">
-                    Mobile : +91 9953520512<br>
-                    Email : lakshay.arora@spaceframe.co.in<br>
-                    <strong>Spaceframe</strong>
-                    GST: 06DINPA6810A1ZS<br>
-                    2nd floor, iWorkk, 90, Mehrauli-Gurgaon Rd,<br>
-                    Industrial Development Area, Sector 16,<br>
-                    Gurugram, Haryana 122007
+                <div class="cover-title">QUOTATION</div>
+                <div class="cover-dots">•••••••••••••••••••••••••••</div>
+                <div class="cover-client">
+                    <div class="client-name">${clientName || 'Client Name'}</div>
+                    <div class="client-address">${siteAddress || 'Client Address'}</div>
                 </div>
             </div>
-            <div class="prepared-by">
-                Quotation Valid till ${validDays} days<br>
-                <strong>Prepared By:</strong><br>
-                ${preparedBy}
+            
+            <div class="cover-footer">
+                <div>Mobile : +91 9953520512</div>
+                <div>Email : lakshay.arora@spaceframe.co.in</div>
+                <div class="brand">Spaceframe</div>
+                <div>GST: 06DINPA6810A1ZS</div>
+                <div>Basement, B-127, near Signature Towers, South City I, Sector 30, Gurugram, Haryana 122001</div>
+                <div class="validity">QUOTATION VALID TILL ${validDays} DAYS</div>
             </div>
         </div>
         
-        <div class="middle-panel">
-            <div class="quotation-title">Quotation</div>
-            <div class="client-name">${clientName}</div>
-        </div>
-        
-        <div class="right-panel">
-            <div class="pid-box">
-                <div class="pid-label">PID</div>
-                <div class="pid-value">${pid}</div>
-            </div>
-            
-            <div class="project-info">
-                <strong>${projectName || clientName}</strong><br>
-                Date : ${quoteDate}
-            </div>
-            
-            <div class="total-box">
-                <div class="total-row">
-                    <span>MS Work</span>
-                    <span>₹ ${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div class="gst-note">GST 18% extra</div>
+        <div class="cover-right">
+            <div class="cover-image"></div>
+            <div class="prep-bar">
+                <div class="label">PREPARED BY:</div>
+                <div class="name">${preparedBy}</div>
             </div>
         </div>
     </div>
@@ -1408,6 +1448,516 @@
             });
         }
         
+        // ===== QUOTATIONS DATABASE FUNCTIONS =====
+
+        // Connect to Quotations Database
+        async function connectQuotationsDb() {
+            const url = document.getElementById('quotationsUrl').value.trim();
+
+            if (!url) {
+                showQuotationsMessage('Please enter the Quotations Web App URL', 'error');
+                return;
+            }
+
+            // Validate URL format
+            if (!url.startsWith('https://script.google.com/')) {
+                showQuotationsMessage('Invalid URL. Must be a Google Apps Script Web App URL starting with https://script.google.com/', 'error');
+                return;
+            }
+
+            quotationsWebAppUrl = url;
+            showQuotationsMessage('Connecting to Quotations Database...', 'loading');
+
+            try {
+                // Test connection by fetching quotations list
+                await loadQuotationsList();
+                showQuotationsMessage(`✓ Connected successfully! Found ${savedQuotations.length} saved quotations.`, 'success');
+
+                // Show the Load Quotation section
+                document.getElementById('loadQuotationSection').style.display = 'block';
+
+                // Save URL to localStorage for persistence
+                localStorage.setItem('quotationsWebAppUrl', url);
+            } catch (error) {
+                console.error('Connection error:', error);
+                showQuotationsMessage('Connection failed. Please check the URL and ensure the Web App is deployed correctly.', 'error');
+            }
+        }
+
+        // Load quotations list from database
+        async function loadQuotationsList() {
+            if (!quotationsWebAppUrl) {
+                throw new Error('Quotations Web App URL not configured');
+            }
+
+            const response = await fetch(`${quotationsWebAppUrl}?action=list`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                savedQuotations = result.data || [];
+                populateQuotationsDropdown();
+            } else {
+                throw new Error(result.message || 'Failed to load quotations');
+            }
+        }
+
+        // Populate the quotations dropdown
+        function populateQuotationsDropdown() {
+            const select = document.getElementById('savedQuotationSelect');
+            select.innerHTML = '<option value="">-- Select a Saved Quotation --</option>';
+
+            savedQuotations.forEach(q => {
+                const option = document.createElement('option');
+                option.value = q.quotationId;
+                const dateStr = q.quoteDate ? new Date(q.quoteDate).toLocaleDateString() : '';
+                option.textContent = `${q.quotationId} - ${q.clientName} (${q.status || 'Draft'}) - ${dateStr}`;
+                select.appendChild(option);
+            });
+        }
+
+        // Refresh quotations list
+        async function refreshQuotationsList() {
+            try {
+                showQuotationsMessage('Refreshing quotations list...', 'loading');
+                await loadQuotationsList();
+                showQuotationsMessage(`✓ Refreshed! Found ${savedQuotations.length} quotations.`, 'success');
+            } catch (error) {
+                showQuotationsMessage('Failed to refresh quotations list.', 'error');
+            }
+        }
+
+        // Load selected quotation into the form
+        async function loadSelectedQuotation() {
+            const quotationId = document.getElementById('savedQuotationSelect').value;
+
+            if (!quotationId) return;
+
+            try {
+                showQuotationsMessage('Loading quotation...', 'loading');
+
+                const response = await fetch(`${quotationsWebAppUrl}?action=get&id=${encodeURIComponent(quotationId)}`);
+                const result = await response.json();
+
+                if (result.status === 'success' && result.data) {
+                    loadQuotationIntoForm(result.data);
+                    showQuotationsMessage(`✓ Loaded quotation: ${quotationId}`, 'success');
+                } else {
+                    throw new Error(result.message || 'Quotation not found');
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                showQuotationsMessage('Failed to load quotation.', 'error');
+            }
+        }
+
+        // Load quotation data into the form
+        function loadQuotationIntoForm(data) {
+            // Set current quotation ID
+            currentQuotationId = data.quotationId;
+            document.getElementById('quotationId').value = data.quotationId;
+
+            // Basic details
+            document.getElementById('pid').value = data.pid || '';
+            document.getElementById('clientName').value = data.clientName || '';
+            document.getElementById('projectName').value = data.projectName || '';
+            document.getElementById('siteAddress').value = data.siteAddress || '';
+            document.getElementById('preparedBy').value = data.preparedBy || '';
+            document.getElementById('validDays').value = data.validDays || '30';
+
+            // Date
+            if (data.quoteDate) {
+                document.getElementById('quoteDate').value = data.quoteDate;
+            }
+
+            // Status
+            quotationStatus = data.status || 'Draft';
+            document.getElementById('quotationStatus').value = quotationStatus;
+
+            // Load items
+            if (data.items) {
+                try {
+                    selectedItems = typeof data.items === 'string' ? JSON.parse(data.items) : data.items;
+                    updateItemsTable();
+                    document.getElementById('pdfSection').style.display = 'flex';
+                } catch (e) {
+                    console.error('Failed to parse items:', e);
+                    selectedItems = [];
+                }
+            } else {
+                selectedItems = [];
+                updateItemsTable();
+            }
+        }
+
+        // Save quotation to database
+        async function saveQuotation() {
+            // Validate required fields
+            const pid = document.getElementById('pid').value.trim();
+            const clientName = document.getElementById('clientName').value.trim();
+            const preparedBy = document.getElementById('preparedBy').value.trim();
+            const quoteDate = document.getElementById('quoteDate').value;
+
+            if (!pid || !clientName || !preparedBy || !quoteDate) {
+                showSaveMessage('Please fill in: PID, Client Name, Prepared By, and Quote Date', 'error');
+                return;
+            }
+
+            if (selectedItems.length === 0) {
+                showSaveMessage('Please add at least one item to the quotation', 'error');
+                return;
+            }
+
+            if (!quotationsWebAppUrl) {
+                showSaveMessage('Please connect to the Quotations Database first', 'error');
+                return;
+            }
+
+            // Generate new ID if this is a new quotation
+            if (!currentQuotationId) {
+                currentQuotationId = generateQuotationId();
+                document.getElementById('quotationId').value = currentQuotationId;
+            }
+
+            // Calculate totals
+            const subtotal = selectedItems.reduce((sum, item) => sum + item.amount, 0);
+            const gst = subtotal * 0.18;
+            const grandTotal = subtotal + gst;
+
+            // Prepare quotation data
+            const quotationData = {
+                quotationId: currentQuotationId,
+                pid: pid,
+                clientName: clientName,
+                projectName: document.getElementById('projectName').value.trim(),
+                siteAddress: document.getElementById('siteAddress').value.trim(),
+                preparedBy: preparedBy,
+                quoteDate: quoteDate,
+                validDays: document.getElementById('validDays').value || '30',
+                items: JSON.stringify(selectedItems),
+                subtotal: subtotal,
+                gst: gst,
+                grandTotal: grandTotal,
+                status: document.getElementById('quotationStatus').value
+            };
+
+            showSaveMessage('Saving quotation...', 'loading');
+
+            try {
+                const response = await fetch(quotationsWebAppUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', // Required for Google Apps Script
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'save',
+                        data: quotationData
+                    })
+                });
+
+                // Since we use no-cors, we can't read the response
+                // We'll assume success if no error was thrown
+                showSaveMessage(`✓ Quotation ${currentQuotationId} saved successfully!`, 'success');
+
+                // Refresh the quotations list
+                setTimeout(() => {
+                    refreshQuotationsList();
+                }, 1000);
+
+            } catch (error) {
+                console.error('Save error:', error);
+                showSaveMessage('Failed to save quotation. Please check your connection.', 'error');
+            }
+        }
+
+        // Generate a unique quotation ID (QT-YYYY-XXXX format)
+        function generateQuotationId() {
+            const year = new Date().getFullYear();
+            const random = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+            return `QT-${year}-${random}`;
+        }
+
+        // Update quotation status
+        function updateQuotationStatus() {
+            quotationStatus = document.getElementById('quotationStatus').value;
+        }
+
+        // Show message in quotations section
+        function showQuotationsMessage(message, type) {
+            const msgDiv = document.getElementById('quotationsMessage');
+            msgDiv.className = type;
+            msgDiv.textContent = message;
+            msgDiv.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    msgDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Show save message
+        function showSaveMessage(message, type) {
+            const msgDiv = document.getElementById('saveMessage');
+            msgDiv.className = type;
+            msgDiv.textContent = message;
+            msgDiv.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    msgDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Show setup instructions in an alert/modal
+        function showSetupInstructions() {
+            const instructions = `
+=== QUOTATIONS DATABASE SETUP INSTRUCTIONS ===
+
+STEP 1: Create a New Google Sheet
+--------------------------------
+1. Go to Google Sheets (sheets.google.com)
+2. Create a new spreadsheet named "Spaceframe Quotations Database"
+3. Rename the first sheet to "Quotations"
+4. Add these column headers in Row 1:
+   A: QuotationID
+   B: PID
+   C: ClientName
+   D: ProjectName
+   E: SiteAddress
+   F: PreparedBy
+   G: QuoteDate
+   H: ValidDays
+   I: Items
+   J: Subtotal
+   K: GST
+   L: GrandTotal
+   M: CreatedAt
+   N: Status
+
+STEP 2: Add the Apps Script
+---------------------------
+1. In your Quotations sheet, go to Extensions → Apps Script
+2. Delete any existing code
+3. Copy the Apps Script code (click "Copy Script" button below)
+4. Paste it into the Apps Script editor
+5. Save the project (Ctrl+S or Cmd+S)
+
+STEP 3: Deploy as Web App
+-------------------------
+1. Click "Deploy" → "New deployment"
+2. Click the gear icon next to "Select type" → "Web app"
+3. Set Description: "Quotations API"
+4. Set "Execute as": "Me"
+5. Set "Who has access": "Anyone"
+6. Click "Deploy"
+7. Click "Authorize access" and allow permissions
+8. Copy the Web App URL provided
+
+STEP 4: Connect in Quotation Maker
+----------------------------------
+1. Paste the Web App URL in the "Quotations Web App URL" field
+2. Click "Connect to Quotations DB"
+3. You should see a success message
+
+The Apps Script code will be shown when you click OK.
+            `;
+
+            alert(instructions);
+            showAppsScriptCode();
+        }
+
+        // Show the Apps Script code
+        function showAppsScriptCode() {
+            const scriptCode = `// ===== SPACEFRAME QUOTATIONS DATABASE - APPS SCRIPT =====
+// Copy this entire script to your Google Apps Script editor
+
+function doGet(e) {
+  const action = e.parameter.action || 'list';
+  const id = e.parameter.id;
+
+  try {
+    if (action === 'list') {
+      return listQuotations();
+    } else if (action === 'get' && id) {
+      return getQuotation(id);
+    } else {
+      return jsonResponse({ status: 'error', message: 'Invalid action' });
+    }
+  } catch (error) {
+    return jsonResponse({ status: 'error', message: error.toString() });
+  }
+}
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+
+    if (data.action === 'save') {
+      return saveQuotation(data.data);
+    } else {
+      return jsonResponse({ status: 'error', message: 'Invalid action' });
+    }
+  } catch (error) {
+    return jsonResponse({ status: 'error', message: error.toString() });
+  }
+}
+
+function listQuotations() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quotations');
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const quotations = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) { // Has QuotationID
+      quotations.push({
+        quotationId: data[i][0],
+        pid: data[i][1],
+        clientName: data[i][2],
+        projectName: data[i][3],
+        quoteDate: data[i][6],
+        status: data[i][13] || 'Draft'
+      });
+    }
+  }
+
+  return jsonResponse({ status: 'success', data: quotations });
+}
+
+function getQuotation(quotationId) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quotations');
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === quotationId) {
+      return jsonResponse({
+        status: 'success',
+        data: {
+          quotationId: data[i][0],
+          pid: data[i][1],
+          clientName: data[i][2],
+          projectName: data[i][3],
+          siteAddress: data[i][4],
+          preparedBy: data[i][5],
+          quoteDate: data[i][6],
+          validDays: data[i][7],
+          items: data[i][8],
+          subtotal: data[i][9],
+          gst: data[i][10],
+          grandTotal: data[i][11],
+          createdAt: data[i][12],
+          status: data[i][13]
+        }
+      });
+    }
+  }
+
+  return jsonResponse({ status: 'error', message: 'Quotation not found' });
+}
+
+function saveQuotation(quotationData) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quotations');
+  const data = sheet.getDataRange().getValues();
+
+  // Check if quotation exists (for update)
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === quotationData.quotationId) {
+      rowIndex = i + 1; // Sheet rows are 1-indexed
+      break;
+    }
+  }
+
+  const rowData = [
+    quotationData.quotationId,
+    quotationData.pid,
+    quotationData.clientName,
+    quotationData.projectName,
+    quotationData.siteAddress,
+    quotationData.preparedBy,
+    quotationData.quoteDate,
+    quotationData.validDays,
+    quotationData.items,
+    quotationData.subtotal,
+    quotationData.gst,
+    quotationData.grandTotal,
+    rowIndex === -1 ? new Date().toISOString() : data[rowIndex-1][12], // Keep original createdAt for updates
+    quotationData.status
+  ];
+
+  if (rowIndex === -1) {
+    // New quotation - append row
+    sheet.appendRow(rowData);
+  } else {
+    // Update existing - update row
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+  }
+
+  return jsonResponse({ status: 'success', message: 'Quotation saved', quotationId: quotationData.quotationId });
+}
+
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+            // Create a modal/popup with the code
+            const codeWindow = window.open('', '_blank', 'width=800,height=600');
+            const escapedCode = scriptCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const htmlContent = [
+                '<html>',
+                '<head>',
+                '<title>Apps Script Code - Copy This</title>',
+                '<style>',
+                'body { font-family: monospace; padding: 20px; background: #f5f5f5; }',
+                'h2 { color: #333; }',
+                'pre { background: #fff; padding: 20px; border: 1px solid #ddd; overflow: auto; white-space: pre-wrap; }',
+                'button { background: #000; color: #fff; padding: 15px 30px; border: none; cursor: pointer; font-size: 14px; margin: 10px 5px; }',
+                'button:hover { background: #333; }',
+                '.copied { background: #006600 !important; }',
+                '</style>',
+                '</head>',
+                '<body>',
+                '<h2>Apps Script Code for Quotations Database</h2>',
+                '<p>Copy this code and paste it into your Google Apps Script editor:</p>',
+                '<button onclick="copyCode()">Copy to Clipboard</button>',
+                '<button onclick="window.close()">Close</button>',
+                '<pre id="code">' + escapedCode + '</pre>',
+                '<script>',
+                'function copyCode() {',
+                '  const code = document.getElementById("code").innerText;',
+                '  navigator.clipboard.writeText(code).then(function() {',
+                '    event.target.textContent = "Copied!";',
+                '    event.target.classList.add("copied");',
+                '    setTimeout(function() {',
+                '      event.target.textContent = "Copy to Clipboard";',
+                '      event.target.classList.remove("copied");',
+                '    }, 2000);',
+                '  });',
+                '}',
+                '<\/script>',
+                '</body>',
+                '</html>'
+            ].join('\n');
+            codeWindow.document.write(htmlContent);
+            codeWindow.document.close();
+        }
+
+        // Auto-load saved URL on page load
+        window.addEventListener('load', function() {
+            const savedUrl = localStorage.getItem('quotationsWebAppUrl');
+            if (savedUrl) {
+                document.getElementById('quotationsUrl').value = savedUrl;
+            }
+        });
+
         // ===== UTILITY FUNCTIONS =====
         function showMessage(message, type) {
             const loadingDiv = document.getElementById('loadingMessage');
@@ -1426,10 +1976,18 @@
             if (!confirm('Start new quotation? Current items will be cleared.')) {
                 return;
             }
-            
+
             selectedItems = [];
             updateItemsTable();
-            
+
+            // Reset quotation database fields
+            currentQuotationId = '';
+            quotationStatus = 'Draft';
+            document.getElementById('quotationId').value = '';
+            document.getElementById('quotationStatus').value = 'Draft';
+            document.getElementById('savedQuotationSelect').value = '';
+
+            // Reset form fields
             document.getElementById('pid').value = '';
             document.getElementById('clientName').value = '';
             document.getElementById('projectName').value = '';
@@ -1441,8 +1999,12 @@
             document.getElementById('subCategoryFilter').innerHTML = '<option value="">-- Select Sub-Category --</option>';
             document.getElementById('itemSelect').innerHTML = '<option value="">-- Select Item --</option>';
             document.getElementById('quantity').value = '';
-            
+
             document.getElementById('pdfSection').style.display = 'none';
+
+            // Hide save message
+            const saveMsg = document.getElementById('saveMessage');
+            if (saveMsg) saveMsg.style.display = 'none';
         }
     </script>
 </body>
