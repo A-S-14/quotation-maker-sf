@@ -878,21 +878,37 @@
         function createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
             // Open new window
             const printWindow = window.open('', '_blank');
-            
+
             // Generate the HTML content
             const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
-            
+
             // Write to new window
             printWindow.document.write(htmlContent);
             printWindow.document.close();
-            
-            // Auto-trigger print dialog after content loads
+
+            // Wait for cover image to load before printing
             printWindow.onload = function() {
-                setTimeout(() => {
-                    printWindow.print();
-                }, 500);
+                const coverImg = printWindow.document.getElementById('coverImg');
+                if (coverImg) {
+                    if (coverImg.complete) {
+                        // Image already loaded
+                        setTimeout(() => printWindow.print(), 300);
+                    } else {
+                        // Wait for image to load
+                        coverImg.onload = function() {
+                            setTimeout(() => printWindow.print(), 300);
+                        };
+                        coverImg.onerror = function() {
+                            // Print anyway if image fails
+                            console.warn('Cover image failed to load');
+                            setTimeout(() => printWindow.print(), 300);
+                        };
+                    }
+                } else {
+                    setTimeout(() => printWindow.print(), 500);
+                }
             };
-            
+
             showMessage('✓ PDF preview opened! Click Print and choose "Save as PDF"', 'success');
         }
         
@@ -1028,9 +1044,18 @@
         
         .cover-image {
             flex: 1;
-            background-image: url('${coverImageUrl}');
-            background-size: cover;
-            background-position: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover-image img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
         }
         
         .prep-bar {
@@ -1150,7 +1175,9 @@
         </div>
         
         <div class="cover-right">
-            <div class="cover-image"></div>
+            <div class="cover-image">
+                <img src="${coverImageUrl}" alt="Cover" id="coverImg">
+            </div>
             <div class="prep-bar">
                 <div class="label">PREPARED BY:</div>
                 <div class="name">${preparedBy}</div>
