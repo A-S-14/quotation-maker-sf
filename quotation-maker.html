@@ -411,6 +411,13 @@
                     <input type="text" id="preparedBy" placeholder="e.g., Ar. Lakshay Arora" required>
                 </div>
             </div>
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label>Discount (%):</label>
+                    <input type="number" id="discountPercent" value="0" min="0" max="15" step="0.5" onchange="applyDiscountCap(); updateItemsTable();">
+                    <small>Maximum 15%</small>
+                </div>
+            </div>
         </div>
         
         <!-- Client Information -->
@@ -489,6 +496,11 @@
                     <tr class="total-row">
                         <td colspan="6" style="text-align: right; font-weight: 700;">Subtotal:</td>
                         <td id="subtotal" style="font-weight: 700;">₹0.00</td>
+                        <td></td>
+                    </tr>
+                    <tr class="total-row" id="discountRow" style="display: none;">
+                        <td colspan="6" style="text-align: right; font-weight: 700;">Discount (<span id="discountPercentDisplay">0</span>%):</td>
+                        <td id="discountAmount" style="font-weight: 700; color: #cc0000;">-₹0.00</td>
                         <td></td>
                     </tr>
                     <tr class="total-row">
@@ -798,21 +810,29 @@
             document.getElementById('pdfSection').style.display = 'flex';
         }
         
+        // Cap discount at 15%
+        function applyDiscountCap() {
+            const discountInput = document.getElementById('discountPercent');
+            let value = parseFloat(discountInput.value) || 0;
+            if (value > 15) {
+                discountInput.value = 15;
+            } else if (value < 0) {
+                discountInput.value = 0;
+            }
+        }
+
         function updateItemsTable() {
             const table = document.getElementById('selectedItemsTable');
             const tbody = document.getElementById('selectedItemsBody');
-            
+
             tbody.innerHTML = '';
-            
+
             let subtotal = 0;
-            let totalGST = 0;
-            
+
             selectedItems.forEach((item, index) => {
-                const row = tbody.insertRow();
-                const itemGST = (item.amount * item.gst) / 100;
-                
                 const itemDisplay = item.brand ? `${item.skuName} (${item.brand})` : item.skuName;
-                
+
+                const row = tbody.insertRow();
                 row.innerHTML = `
                     <td style="text-align: center;">${index + 1}</td>
                     <td><strong>${item.superCategory}</strong><br><small style="color: #666;">${item.categoryType}</small></td>
@@ -823,17 +843,35 @@
                     <td style="text-align: right;"><strong>₹${item.amount.toFixed(2)}</strong></td>
                     <td style="text-align: center;"><button class="btn-danger" onclick="removeItem(${index})">Remove</button></td>
                 `;
-                
+
                 subtotal += item.amount;
-                totalGST += itemGST;
             });
-            
-            const grandTotal = subtotal + totalGST;
-            
+
+            // Get discount percentage
+            const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
+            const discountAmount = (subtotal * discountPercent) / 100;
+            const subtotalAfterDiscount = subtotal - discountAmount;
+
+            // Calculate GST on discounted amount
+            const totalGST = (subtotalAfterDiscount * 18) / 100;
+            const grandTotal = subtotalAfterDiscount + totalGST;
+
+            // Update display
             document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+
+            // Show/hide discount row
+            const discountRow = document.getElementById('discountRow');
+            if (discountPercent > 0) {
+                discountRow.style.display = '';
+                document.getElementById('discountPercentDisplay').textContent = discountPercent;
+                document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
+            } else {
+                discountRow.style.display = 'none';
+            }
+
             document.getElementById('gstAmount').textContent = `₹${totalGST.toFixed(2)}`;
             document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-            
+
             table.style.display = selectedItems.length > 0 ? 'table' : 'none';
         }
         
@@ -895,19 +933,22 @@
             const validDays = document.getElementById('validDays').value || '30';
 
             const subtotal = selectedItems.reduce((sum, item) => sum + item.amount, 0);
-            const totalGST = selectedItems.reduce((sum, item) => sum + (item.amount * item.gst / 100), 0);
-            const grandTotal = subtotal + totalGST;
+            const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
+            const discountAmount = (subtotal * discountPercent) / 100;
+            const subtotalAfterDiscount = subtotal - discountAmount;
+            const totalGST = (subtotalAfterDiscount * 18) / 100;
+            const grandTotal = subtotalAfterDiscount + totalGST;
 
             // Create a new window with the PDF-ready HTML
-            createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
+            createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress, discountPercent, discountAmount);
         }
-        
-        function createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
+
+        function createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress, discountPercent, discountAmount) {
             // Open new window
             const printWindow = window.open('', '_blank');
 
             // Generate the HTML content (uses preloaded data URL for image)
-            const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress);
+            const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress, discountPercent, discountAmount);
 
             // Write to new window
             printWindow.document.write(htmlContent);
@@ -921,7 +962,7 @@
             showMessage('✓ PDF preview opened! Click Print and choose "Save as PDF"', 'success');
         }
         
-        function generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
+        function generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress, discountPercent, discountAmount) {
             // Use preloaded data URL, or fallback to file URL
             const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
             const coverImageUrl = coverImageDataUrl || (baseUrl + 'cover-background.jpg');
@@ -1238,6 +1279,12 @@
                     <td colspan="6" style="text-align: right;">Subtotal:</td>
                     <td style="text-align: right;">₹${subtotal.toFixed(2)}</td>
                 </tr>
+                ${discountPercent > 0 ? `
+                <tr class="total-footer">
+                    <td colspan="6" style="text-align: right;">Discount (${discountPercent}%):</td>
+                    <td style="text-align: right; color: #cc0000;">-₹${discountAmount.toFixed(2)}</td>
+                </tr>
+                ` : ''}
                 <tr class="total-footer">
                     <td colspan="6" style="text-align: right;">GST (18%):</td>
                     <td style="text-align: right;">₹${totalGST.toFixed(2)}</td>
@@ -1620,6 +1667,7 @@
             document.getElementById('siteAddress').value = String(data.siteAddress || '');
             document.getElementById('preparedBy').value = String(data.preparedBy || '');
             document.getElementById('validDays').value = String(data.validDays || '30');
+            document.getElementById('discountPercent').value = String(data.discountPercent || '0');
 
             // Date - handle various formats from Google Sheets
             if (data.quoteDate) {
@@ -1701,10 +1749,13 @@
                 document.getElementById('quotationId').value = currentQuotationId;
             }
 
-            // Calculate totals
+            // Calculate totals with discount
             const subtotal = selectedItems.reduce((sum, item) => sum + item.amount, 0);
-            const gst = subtotal * 0.18;
-            const grandTotal = subtotal + gst;
+            const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
+            const discountAmount = (subtotal * discountPercent) / 100;
+            const subtotalAfterDiscount = subtotal - discountAmount;
+            const gst = subtotalAfterDiscount * 0.18;
+            const grandTotal = subtotalAfterDiscount + gst;
 
             // Prepare quotation data
             const quotationData = {
@@ -1716,6 +1767,7 @@
                 preparedBy: preparedBy,
                 quoteDate: quoteDate,
                 validDays: document.getElementById('validDays').value || '30',
+                discountPercent: discountPercent,
                 items: JSON.stringify(selectedItems),
                 subtotal: subtotal,
                 gst: gst,
@@ -2141,6 +2193,7 @@ function jsonResponse(data) {
             document.getElementById('preparedBy').value = '';
             document.getElementById('quoteDate').valueAsDate = new Date();
             document.getElementById('validDays').value = '30';
+            document.getElementById('discountPercent').value = '0';
             document.getElementById('categoryFilter').value = '';
             document.getElementById('subCategoryFilter').innerHTML = '<option value="">-- Select Sub-Category --</option>';
             document.getElementById('itemSelect').innerHTML = '<option value="">-- Select Item --</option>';
