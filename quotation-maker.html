@@ -1700,7 +1700,7 @@
 
             // Generate new ID if this is a new quotation
             if (!currentQuotationId) {
-                currentQuotationId = generateQuotationId();
+                currentQuotationId = generateQuotationId(pid);
                 document.getElementById('quotationId').value = currentQuotationId;
             }
 
@@ -1756,11 +1756,13 @@
             }
         }
 
-        // Generate a unique quotation ID (QT-YYYY-XXXX format)
-        function generateQuotationId() {
+        // Generate a unique quotation ID (QT-YYYY-PID format)
+        function generateQuotationId(pid) {
             const year = new Date().getFullYear();
-            const random = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
-            return `QT-${year}-${random}`;
+            // Use last 4 digits of PID, pad with zeros if needed
+            const pidStr = String(pid || '0000');
+            const last4 = pidStr.slice(-4).padStart(4, '0');
+            return `QT-${year}-${last4}`;
         }
 
         // Update quotation status
