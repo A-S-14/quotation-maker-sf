@@ -896,8 +896,9 @@
         }
         
         function generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress) {
-            // Use local cover image - add your image file as 'cover-background.jpg' in the repo root
-            const coverImageUrl = './cover-background.jpg';
+            // Build absolute URL for cover image (works in new window)
+            const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            const coverImageUrl = baseUrl + 'cover-background.jpg';
             
             // Generate items table rows
             let itemsHTML = '';
