@@ -1549,21 +1549,40 @@
 
         // Load quotation data into the form
         function loadQuotationIntoForm(data) {
+            console.log('Loading quotation data:', data);
+
             // Set current quotation ID
             currentQuotationId = data.quotationId;
-            document.getElementById('quotationId').value = data.quotationId;
+            document.getElementById('quotationId').value = data.quotationId || '';
 
-            // Basic details
-            document.getElementById('pid').value = data.pid || '';
-            document.getElementById('clientName').value = data.clientName || '';
-            document.getElementById('projectName').value = data.projectName || '';
-            document.getElementById('siteAddress').value = data.siteAddress || '';
-            document.getElementById('preparedBy').value = data.preparedBy || '';
-            document.getElementById('validDays').value = data.validDays || '30';
+            // Basic details - convert to string to handle any type
+            document.getElementById('pid').value = String(data.pid || '');
+            document.getElementById('clientName').value = String(data.clientName || '');
+            document.getElementById('projectName').value = String(data.projectName || '');
+            document.getElementById('siteAddress').value = String(data.siteAddress || '');
+            document.getElementById('preparedBy').value = String(data.preparedBy || '');
+            document.getElementById('validDays').value = String(data.validDays || '30');
 
-            // Date
+            // Date - handle various formats from Google Sheets
             if (data.quoteDate) {
-                document.getElementById('quoteDate').value = data.quoteDate;
+                let dateValue = data.quoteDate;
+                // If it's a Date object or date string, convert to YYYY-MM-DD format
+                if (typeof dateValue === 'string' && dateValue.includes('T')) {
+                    // ISO format: extract just the date part
+                    dateValue = dateValue.split('T')[0];
+                } else if (typeof dateValue === 'string' && dateValue.includes('/')) {
+                    // MM/DD/YYYY or DD/MM/YYYY format - try to parse
+                    const parts = dateValue.split('/');
+                    if (parts.length === 3) {
+                        // Assume MM/DD/YYYY format
+                        const month = parts[0].padStart(2, '0');
+                        const day = parts[1].padStart(2, '0');
+                        const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                        dateValue = `${year}-${month}-${day}`;
+                    }
+                }
+                document.getElementById('quoteDate').value = dateValue;
+                console.log('Set quoteDate to:', dateValue);
             }
 
             // Status
@@ -1574,6 +1593,7 @@
             if (data.items) {
                 try {
                     selectedItems = typeof data.items === 'string' ? JSON.parse(data.items) : data.items;
+                    console.log('Loaded items:', selectedItems);
                     updateItemsTable();
                     document.getElementById('pdfSection').style.display = 'flex';
                 } catch (e) {
@@ -1584,6 +1604,14 @@
                 selectedItems = [];
                 updateItemsTable();
             }
+
+            // Log final form values for debugging
+            console.log('Form values after load:', {
+                pid: document.getElementById('pid').value,
+                clientName: document.getElementById('clientName').value,
+                quoteDate: document.getElementById('quoteDate').value,
+                preparedBy: document.getElementById('preparedBy').value
+            });
         }
 
         // Save quotation to database
