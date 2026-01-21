@@ -538,7 +538,32 @@
         let savedQuotations = [];
         let currentQuotationId = ''; // Currently loaded quotation ID
         let quotationStatus = 'Draft'; // Draft, Sent, Approved, Rejected
-        
+
+        // Format number as Indian currency (e.g., 1,00,000.00)
+        function formatIndianCurrency(num) {
+            const fixed = parseFloat(num).toFixed(2);
+            const parts = fixed.split('.');
+            let intPart = parts[0];
+            const decPart = parts[1];
+
+            // Handle negative numbers
+            let sign = '';
+            if (intPart.startsWith('-')) {
+                sign = '-';
+                intPart = intPart.substring(1);
+            }
+
+            // Indian numbering: last 3 digits, then groups of 2
+            if (intPart.length > 3) {
+                const last3 = intPart.slice(-3);
+                const remaining = intPart.slice(0, -3);
+                const formatted = remaining.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+                intPart = formatted + ',' + last3;
+            }
+
+            return sign + '₹' + intPart + '.' + decPart;
+        }
+
         // ===== LOAD DATA FROM GOOGLE SHEETS =====
         async function loadSheetData() {
             const sheetId = document.getElementById('sheetId').value.trim();
@@ -771,9 +796,9 @@
             filteredItems.forEach((item, index) => {
                 const option = document.createElement('option');
                 option.value = allItems.indexOf(item); // Use original index
-                const displayText = item.brand ? 
-                    `${item.skuName} - ${item.brand} (₹${item.rate}/${item.unit})` :
-                    `${item.skuName} (₹${item.rate}/${item.unit})`;
+                const displayText = item.brand ?
+                    `${item.skuName} - ${item.brand} (${formatIndianCurrency(item.rate)}/${item.unit})` :
+                    `${item.skuName} (${formatIndianCurrency(item.rate)}/${item.unit})`;
                 option.textContent = displayText;
                 option.dataset.item = JSON.stringify(item);
                 itemSelect.appendChild(option);
@@ -838,8 +863,8 @@
                     <td>${itemDisplay}<br><small style="color: #666;">${item.description || ''}</small></td>
                     <td>${item.unit}</td>
                     <td style="text-align: center;">${item.quantity}</td>
-                    <td style="text-align: right;">₹${item.rate.toFixed(2)}</td>
-                    <td style="text-align: right;"><strong>₹${item.amount.toFixed(2)}</strong></td>
+                    <td style="text-align: right;">${formatIndianCurrency(item.rate)}</td>
+                    <td style="text-align: right;"><strong>${formatIndianCurrency(item.amount)}</strong></td>
                     <td style="text-align: center;"><button class="btn-danger" onclick="removeItem(${index})">Remove</button></td>
                 `;
 
@@ -856,20 +881,20 @@
             const grandTotal = subtotalAfterDiscount + totalGST;
 
             // Update display
-            document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('subtotal').textContent = formatIndianCurrency(subtotal);
 
             // Show/hide discount row
             const discountRow = document.getElementById('discountRow');
             if (discountPercent > 0) {
                 discountRow.style.display = '';
                 document.getElementById('discountPercentDisplay').textContent = discountPercent;
-                document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
+                document.getElementById('discountAmount').textContent = '-' + formatIndianCurrency(discountAmount);
             } else {
                 discountRow.style.display = 'none';
             }
 
-            document.getElementById('gstAmount').textContent = `₹${totalGST.toFixed(2)}`;
-            document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+            document.getElementById('gstAmount').textContent = formatIndianCurrency(totalGST);
+            document.getElementById('grandTotal').textContent = formatIndianCurrency(grandTotal);
 
             table.style.display = selectedItems.length > 0 ? 'table' : 'none';
         }
@@ -996,8 +1021,8 @@
                         </td>
                         <td style="text-align: center; padding: 12px 8px;">${item.unit}</td>
                         <td style="text-align: center; padding: 12px 8px;">${item.quantity}</td>
-                        <td style="text-align: right; padding: 12px 8px;">₹${item.rate.toFixed(2)}</td>
-                        <td style="text-align: right; padding: 12px 8px;"><strong>₹${item.amount.toFixed(2)}</strong></td>
+                        <td style="text-align: right; padding: 12px 8px;">${formatIndianCurrency(item.rate)}</td>
+                        <td style="text-align: right; padding: 12px 8px;"><strong>${formatIndianCurrency(item.amount)}</strong></td>
                     </tr>
                 `;
             });
@@ -1276,21 +1301,21 @@
             <tfoot>
                 <tr class="total-footer">
                     <td colspan="6" style="text-align: right;">Subtotal:</td>
-                    <td style="text-align: right;">₹${subtotal.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatIndianCurrency(subtotal)}</td>
                 </tr>
                 ${discountPercent > 0 ? `
                 <tr class="total-footer">
                     <td colspan="6" style="text-align: right;">Discount (${discountPercent}%):</td>
-                    <td style="text-align: right; color: #cc0000;">-₹${discountAmount.toFixed(2)}</td>
+                    <td style="text-align: right; color: #cc0000;">-${formatIndianCurrency(discountAmount)}</td>
                 </tr>
                 ` : ''}
                 <tr class="total-footer">
                     <td colspan="6" style="text-align: right;">GST (18%):</td>
-                    <td style="text-align: right;">₹${totalGST.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatIndianCurrency(totalGST)}</td>
                 </tr>
                 <tr class="grand-total-footer">
                     <td colspan="6" style="text-align: right;">GRAND TOTAL:</td>
-                    <td style="text-align: right;">₹${grandTotal.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatIndianCurrency(grandTotal)}</td>
                 </tr>
             </tfoot>
         </table>
@@ -1451,20 +1476,20 @@
                     fullItemText,
                     item.unit || '',
                     item.quantity.toString(),
-                    `₹${item.rate.toFixed(2)}`,
-                    `₹${item.amount.toFixed(2)}`
+                    formatIndianCurrency(item.rate),
+                    formatIndianCurrency(item.amount)
                 ];
             });
-            
+
             // Create table
             doc.autoTable({
                 startY: 15,
                 head: [['SR.', 'CATEGORY', 'ITEM DETAILS', 'UNIT', 'QTY', 'RATE (₹)', 'AMOUNT (₹)']],
                 body: tableData,
                 foot: [
-                    ['', '', '', '', '', 'Subtotal:', `₹${subtotal.toFixed(2)}`],
-                    ['', '', '', '', '', 'GST (18%):', `₹${totalGST.toFixed(2)}`],
-                    ['', '', '', '', '', 'GRAND TOTAL:', `₹${grandTotal.toFixed(2)}`]
+                    ['', '', '', '', '', 'Subtotal:', formatIndianCurrency(subtotal)],
+                    ['', '', '', '', '', 'GST (18%):', formatIndianCurrency(totalGST)],
+                    ['', '', '', '', '', 'GRAND TOTAL:', formatIndianCurrency(grandTotal)]
                 ],
                 
                 // Table settings
