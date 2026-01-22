@@ -1089,8 +1089,9 @@
         }
 
         function createPrintableQuotation(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress, discountPercent, discountAmount) {
-            // Open new window
-            const printWindow = window.open('', '_blank');
+            // Open new window with unique name to ensure fresh instance
+            const windowName = 'quotation_' + Date.now();
+            const printWindow = window.open('', windowName);
 
             // Generate the HTML content (uses preloaded data URL for image)
             const htmlContent = generateQuotationHTML(pid, clientName, quoteDate, validDays, preparedBy, grandTotal, projectName, subtotal, totalGST, siteAddress, discountPercent, discountAmount);
@@ -1099,10 +1100,24 @@
             printWindow.document.write(htmlContent);
             printWindow.document.close();
 
-            // Since image is embedded as data URL, just wait for document ready
-            printWindow.onload = function() {
-                setTimeout(() => printWindow.print(), 500);
+            // Trigger print dialog - use multiple methods for reliability
+            const triggerPrint = () => {
+                try {
+                    printWindow.focus();
+                    printWindow.print();
+                } catch (e) {
+                    console.error('Print failed:', e);
+                }
             };
+
+            // Try onload first, then fallback to timeout
+            if (printWindow.document.readyState === 'complete') {
+                setTimeout(triggerPrint, 500);
+            } else {
+                printWindow.onload = () => setTimeout(triggerPrint, 500);
+                // Fallback if onload doesn't fire
+                setTimeout(triggerPrint, 1500);
+            }
 
             showMessage('✓ PDF preview opened! Click Print and choose "Save as PDF"', 'success');
         }
