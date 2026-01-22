@@ -442,36 +442,83 @@
         <div class="section" id="itemsSection" style="display: none;">
             <div class="section-title">📦 Bill of Quantities (BOQ)</div>
             
-            <div class="item-controls">
+            <!-- Toggle buttons for entry mode -->
+            <div style="margin-bottom: 20px;">
+                <button id="dropdownModeBtn" onclick="showDropdownMode()" style="margin-right: 10px;">Select from Database</button>
+                <button id="manualModeBtn" class="btn-secondary" onclick="showManualMode()">Manual Entry</button>
+            </div>
+
+            <!-- Dropdown Selection Mode -->
+            <div id="dropdownMode" class="item-controls">
                 <div class="form-group">
                     <label>Super Category:</label>
                     <select id="categoryFilter" onchange="filterByCategory()">
                         <option value="">-- Select Super Category --</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Category Type:</label>
                     <select id="subCategoryFilter" onchange="filterBySubCategory()">
                         <option value="">-- Select Category Type --</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Item (SKU):</label>
                     <select id="itemSelect">
                         <option value="">-- Select Item --</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Quantity:</label>
                     <input type="number" id="quantity" placeholder="Qty" min="0.01" step="0.01">
                 </div>
-                
+
                 <div class="form-group">
                     <label>&nbsp;</label>
                     <button onclick="addItem()">Add Item</button>
+                </div>
+            </div>
+
+            <!-- Manual Entry Mode -->
+            <div id="manualMode" style="display: none;">
+                <div class="item-controls">
+                    <div class="form-group">
+                        <label>Super Category:</label>
+                        <input type="text" id="manualSuperCategory" placeholder="e.g., Furniture">
+                    </div>
+                    <div class="form-group">
+                        <label>Category Type:</label>
+                        <input type="text" id="manualCategoryType" placeholder="e.g., Tables">
+                    </div>
+                    <div class="form-group">
+                        <label>Item Name:</label>
+                        <input type="text" id="manualItemName" placeholder="e.g., Office Desk">
+                    </div>
+                    <div class="form-group">
+                        <label>Description:</label>
+                        <input type="text" id="manualDescription" placeholder="Optional description">
+                    </div>
+                </div>
+                <div class="item-controls">
+                    <div class="form-group">
+                        <label>Unit:</label>
+                        <input type="text" id="manualUnit" placeholder="e.g., Nos, Sqft, Rft">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity:</label>
+                        <input type="number" id="manualQuantity" placeholder="Qty" min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Rate (₹):</label>
+                        <input type="number" id="manualRate" placeholder="Rate per unit" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button onclick="addManualItem()">Add Manual Item</button>
+                    </div>
                 </div>
             </div>
             
@@ -833,7 +880,81 @@
             document.getElementById('quantity').value = '';
             document.getElementById('pdfSection').style.display = 'flex';
         }
-        
+
+        // Toggle between dropdown and manual entry modes
+        function showDropdownMode() {
+            document.getElementById('dropdownMode').style.display = '';
+            document.getElementById('manualMode').style.display = 'none';
+            document.getElementById('dropdownModeBtn').classList.remove('btn-secondary');
+            document.getElementById('manualModeBtn').classList.add('btn-secondary');
+        }
+
+        function showManualMode() {
+            document.getElementById('dropdownMode').style.display = 'none';
+            document.getElementById('manualMode').style.display = 'block';
+            document.getElementById('manualModeBtn').classList.remove('btn-secondary');
+            document.getElementById('dropdownModeBtn').classList.add('btn-secondary');
+        }
+
+        // Add manually entered item
+        function addManualItem() {
+            const superCategory = document.getElementById('manualSuperCategory').value.trim();
+            const categoryType = document.getElementById('manualCategoryType').value.trim();
+            const itemName = document.getElementById('manualItemName').value.trim();
+            const description = document.getElementById('manualDescription').value.trim();
+            const unit = document.getElementById('manualUnit').value.trim();
+            const quantity = parseFloat(document.getElementById('manualQuantity').value);
+            const rate = parseFloat(document.getElementById('manualRate').value);
+
+            // Validate required fields
+            if (!superCategory) {
+                alert('Please enter Super Category');
+                return;
+            }
+            if (!itemName) {
+                alert('Please enter Item Name');
+                return;
+            }
+            if (!unit) {
+                alert('Please enter Unit');
+                return;
+            }
+            if (!quantity || quantity <= 0) {
+                alert('Please enter a valid Quantity');
+                return;
+            }
+            if (!rate || rate < 0) {
+                alert('Please enter a valid Rate');
+                return;
+            }
+
+            // Add to selectedItems array
+            selectedItems.push({
+                superCategory: superCategory,
+                categoryType: categoryType || '-',
+                skuName: itemName,
+                brand: '',
+                description: description,
+                unit: unit,
+                rate: rate,
+                quantity: quantity,
+                amount: rate * quantity,
+                gst: 18 // Default GST
+            });
+
+            updateItemsTable();
+            document.getElementById('pdfSection').style.display = 'flex';
+
+            // Clear manual entry fields
+            document.getElementById('manualSuperCategory').value = '';
+            document.getElementById('manualCategoryType').value = '';
+            document.getElementById('manualItemName').value = '';
+            document.getElementById('manualDescription').value = '';
+            document.getElementById('manualUnit').value = '';
+            document.getElementById('manualQuantity').value = '';
+            document.getElementById('manualRate').value = '';
+        }
+
         // Cap discount at 15%
         function applyDiscountCap() {
             const discountInput = document.getElementById('discountPercent');
