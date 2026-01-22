@@ -346,10 +346,12 @@
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span id="itemsStatusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #cc0000;"></span>
                     <span>Items: <strong id="itemsStatusText">Not configured</strong></span>
+                    <button onclick="refreshItemsDatabase()" style="padding: 2px 8px; font-size: 14px; cursor: pointer;" title="Refresh Items Database">🔄</button>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span id="quotationsStatusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #cc0000;"></span>
                     <span>Quotations: <strong id="quotationsStatusText">Not configured</strong></span>
+                    <button onclick="refreshQuotationsDatabase()" style="padding: 2px 8px; font-size: 14px; cursor: pointer;" title="Refresh Quotations Database">🔄</button>
                 </div>
                 <a href="setup.html" style="margin-left: auto; color: #000; font-weight: 700; text-decoration: underline;">Database Setup</a>
             </div>
@@ -2313,6 +2315,55 @@ function jsonResponse(data) {
                 await loadTermsConditions(sheetId);
             } catch (e) {
                 // Terms are optional
+            }
+        }
+
+        // Refresh Items Database
+        async function refreshItemsDatabase() {
+            const savedSheetId = localStorage.getItem('itemsSheetId');
+            if (!savedSheetId) {
+                alert('Items database not configured. Please go to Database Setup.');
+                return;
+            }
+
+            document.getElementById('itemsStatusText').textContent = 'Refreshing...';
+            document.getElementById('itemsStatusDot').style.background = '#ffaa00';
+
+            try {
+                await loadSheetDataFromStorage(savedSheetId);
+                document.getElementById('itemsStatusText').textContent = 'Connected (' + allItems.length + ' items)';
+                document.getElementById('itemsStatusDot').style.background = '#00cc00';
+                populateCategories();
+                showMessage('Items database refreshed!', 'success');
+            } catch (error) {
+                document.getElementById('itemsStatusText').textContent = 'Refresh failed';
+                document.getElementById('itemsStatusDot').style.background = '#cc0000';
+                showMessage('Failed to refresh Items database.', 'error');
+            }
+        }
+
+        // Refresh Quotations Database
+        async function refreshQuotationsDatabase() {
+            const savedQuotationsUrl = localStorage.getItem('quotationsWebAppUrl');
+            if (!savedQuotationsUrl) {
+                alert('Quotations database not configured. Please go to Database Setup.');
+                return;
+            }
+
+            document.getElementById('quotationsStatusText').textContent = 'Refreshing...';
+            document.getElementById('quotationsStatusDot').style.background = '#ffaa00';
+
+            quotationsWebAppUrl = savedQuotationsUrl;
+            try {
+                await loadQuotationsList();
+                document.getElementById('quotationsStatusText').textContent = 'Connected (' + savedQuotations.length + ' quotes)';
+                document.getElementById('quotationsStatusDot').style.background = '#00cc00';
+                document.getElementById('loadQuotationSection').style.display = 'block';
+                showMessage('Quotations database refreshed!', 'success');
+            } catch (error) {
+                document.getElementById('quotationsStatusText').textContent = 'Refresh failed';
+                document.getElementById('quotationsStatusDot').style.background = '#cc0000';
+                showMessage('Failed to refresh Quotations database.', 'error');
             }
         }
 
