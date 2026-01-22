@@ -346,12 +346,12 @@
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span id="itemsStatusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #cc0000;"></span>
                     <span>Items: <strong id="itemsStatusText">Not configured</strong></span>
-                    <button onclick="refreshItemsDatabase()" style="padding: 2px 8px; font-size: 14px; cursor: pointer;" title="Refresh Items Database">🔄</button>
+                    <span onclick="refreshItemsDatabase()" style="cursor: pointer; font-size: 14px;" title="Refresh Items Database">🔄</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span id="quotationsStatusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #cc0000;"></span>
                     <span>Quotations: <strong id="quotationsStatusText">Not configured</strong></span>
-                    <button onclick="refreshQuotationsDatabase()" style="padding: 2px 8px; font-size: 14px; cursor: pointer;" title="Refresh Quotations Database">🔄</button>
+                    <span onclick="refreshQuotationsDatabase()" style="cursor: pointer; font-size: 14px;" title="Refresh Quotations Database">🔄</span>
                 </div>
                 <a href="setup.html" style="margin-left: auto; color: #000; font-weight: 700; text-decoration: underline;">Database Setup</a>
             </div>
@@ -367,10 +367,6 @@
                     <select id="savedQuotationSelect" onchange="loadSelectedQuotation()">
                         <option value="">-- Select a Saved Quotation --</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <label>&nbsp;</label>
-                    <button class="btn-secondary" onclick="refreshQuotationsList()">🔄 Refresh List</button>
                 </div>
             </div>
             <div id="quotationsMessage" style="margin-top: 15px;"></div>
