@@ -805,6 +805,7 @@
             <!-- Action Buttons Section -->
             <div class="button-group" id="pdfSection" style="display: none;">
                 <button class="btn-secondary" onclick="resetForm()">New Quotation</button>
+                <button class="save-quotation-btn" onclick="saveQuotation()">Save Quotation</button>
                 <button onclick="generatePDF()">📄 Download PDF</button>
             </div>
             <div id="saveMessage" style="text-align: center; margin-top: 15px;"></div>
@@ -1043,60 +1044,60 @@
         }
         
         // ===== DROPDOWN POPULATION =====
+        let categoryMap = {}; // Pre-computed: { superCategory: { categoryType: [{item, index}] } }
+
+        function buildCategoryMap() {
+            categoryMap = {};
+            allItems.forEach((item, index) => {
+                if (!item.superCategory) return;
+                if (!categoryMap[item.superCategory]) categoryMap[item.superCategory] = {};
+                if (!categoryMap[item.superCategory][item.categoryType]) categoryMap[item.superCategory][item.categoryType] = [];
+                categoryMap[item.superCategory][item.categoryType].push({ item, index });
+            });
+        }
+
         function populateCategories() {
+            buildCategoryMap();
             const categoryFilter = document.getElementById('categoryFilter');
-            const categories = [...new Set(allItems.map(item => item.superCategory))].filter(Boolean);
-            
             categoryFilter.innerHTML = '<option value="">-- Select Super Category --</option>';
-            categories.forEach(category => {
+            Object.keys(categoryMap).forEach(category => {
                 const option = document.createElement('option');
                 option.value = category;
                 option.textContent = category;
                 categoryFilter.appendChild(option);
             });
         }
-        
+
         function filterByCategory() {
             const superCategory = document.getElementById('categoryFilter').value;
             const subCategoryFilter = document.getElementById('subCategoryFilter');
             const itemSelect = document.getElementById('itemSelect');
-            
+
             subCategoryFilter.innerHTML = '<option value="">-- Select Category Type --</option>';
             itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
-            
-            if (!superCategory) return;
-            
-            // Get unique Category Types for selected Super Category
-            const categoryTypes = [...new Set(
-                allItems
-                    .filter(item => item.superCategory === superCategory)
-                    .map(item => item.categoryType)
-            )].filter(Boolean);
-            
-            categoryTypes.forEach(catType => {
+
+            if (!superCategory || !categoryMap[superCategory]) return;
+
+            Object.keys(categoryMap[superCategory]).forEach(catType => {
                 const option = document.createElement('option');
                 option.value = catType;
                 option.textContent = catType;
                 subCategoryFilter.appendChild(option);
             });
         }
-        
+
         function filterBySubCategory() {
             const superCategory = document.getElementById('categoryFilter').value;
             const categoryType = document.getElementById('subCategoryFilter').value;
             const itemSelect = document.getElementById('itemSelect');
-            
+
             itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
-            
-            if (!categoryType) return;
-            
-            const filteredItems = allItems.filter(item => 
-                item.superCategory === superCategory && item.categoryType === categoryType
-            );
-            
-            filteredItems.forEach((item, index) => {
+
+            if (!categoryType || !categoryMap[superCategory]?.[categoryType]) return;
+
+            categoryMap[superCategory][categoryType].forEach(({ item, index }) => {
                 const option = document.createElement('option');
-                option.value = allItems.indexOf(item); // Use original index
+                option.value = index;
                 const displayText = item.brand ?
                     `${item.skuName} - ${item.brand} (${formatIndianCurrency(item.rate)}/${item.unit})` :
                     `${item.skuName} (${formatIndianCurrency(item.rate)}/${item.unit})`;
@@ -2174,6 +2175,7 @@
                 preparedBy: document.getElementById('preparedBy').value
             });
 
+            setDetailsEditable(false);
             updateEditingState();
         }
 
@@ -2598,20 +2600,34 @@ function jsonResponse(data) {
         });
 
         // Load sheet data from storage (without UI prompts)
-        async function loadSheetDataFromStorage(sheetId) {
-            await loadItems(sheetId);
+        async function loadSheetDataFromStorage(sheetId, forceRefresh = false) {
+            const cacheKey = `items_${sheetId}`;
 
-            try {
-                await loadCompanyDetails(sheetId);
-            } catch (e) {
-                setDefaultCompanyDetails();
+            if (!forceRefresh) {
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                    try {
+                        allItems = JSON.parse(cached);
+                        console.log(`Loaded ${allItems.length} items from cache`);
+                    } catch (e) {
+                        sessionStorage.removeItem(cacheKey);
+                        await loadItems(sheetId);
+                        sessionStorage.setItem(cacheKey, JSON.stringify(allItems));
+                    }
+                } else {
+                    await loadItems(sheetId);
+                    sessionStorage.setItem(cacheKey, JSON.stringify(allItems));
+                }
+            } else {
+                await loadItems(sheetId);
+                sessionStorage.setItem(cacheKey, JSON.stringify(allItems));
             }
 
-            try {
-                await loadTermsConditions(sheetId);
-            } catch (e) {
-                // Terms are optional
-            }
+            // Fetch company details and terms in parallel (both optional)
+            await Promise.all([
+                loadCompanyDetails(sheetId).catch(() => setDefaultCompanyDetails()),
+                loadTermsConditions(sheetId).catch(() => {})
+            ]);
         }
 
         // Refresh Items Database
@@ -2626,7 +2642,7 @@ function jsonResponse(data) {
             document.getElementById('itemsStatusDot').style.background = '#ffaa00';
 
             try {
-                await loadSheetDataFromStorage(savedSheetId);
+                await loadSheetDataFromStorage(savedSheetId, true);
                 document.getElementById('itemsStatusText').textContent = 'Connected (' + allItems.length + ' items)';
                 document.getElementById('itemsStatusDot').style.background = '#00cc00';
                 populateCategories();
@@ -2677,11 +2693,29 @@ function jsonResponse(data) {
             }
         }
         
+        function setDetailsEditable(editable) {
+            const fields = ['pid', 'clientName', 'projectName', 'siteAddress', 'preparedBy', 'quoteDate', 'validDays'];
+            fields.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (editable) {
+                    el.removeAttribute('readonly');
+                    el.style.background = '';
+                    el.style.cursor = '';
+                } else {
+                    el.setAttribute('readonly', true);
+                    el.style.background = '#f8f9fa';
+                    el.style.cursor = 'not-allowed';
+                }
+            });
+        }
+
         function resetForm() {
             if (!confirm('Start new quotation? Current items will be cleared.')) {
                 return;
             }
 
+            setDetailsEditable(true);
             selectedItems = [];
             updateItemsTable();
 
