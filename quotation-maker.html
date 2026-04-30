@@ -2803,20 +2803,6 @@ function jsonResponse(data) {
 
             updateEditingState();
         }
-
-        // Allow re-selecting the same option in a dropdown to re-trigger its filter
-        (function() {
-            function setupReselect(el, handler) {
-                let openVal = null;
-                el.addEventListener('mousedown', () => { openVal = el.value; });
-                el.addEventListener('blur', () => {
-                    if (el.value && el.value === openVal) handler();
-                    openVal = null;
-                });
-            }
-            setupReselect(document.getElementById('categoryFilter'), filterByCategory);
-            setupReselect(document.getElementById('subCategoryFilter'), filterBySubCategory);
-        })();
     </script>
 </body>
 </html>
