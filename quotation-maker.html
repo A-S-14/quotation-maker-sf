@@ -95,7 +95,7 @@
         .container {
             max-width: 100%;
             margin: 0 auto;
-            padding: 30px 40px;
+            padding: 30px 60px;
         }
 
         /* Header with Spaceframe Branding */
@@ -1861,6 +1861,7 @@
                 ${itemsHTML}
             </tbody>
             <tfoot>
+                <tr><td colspan="7" style="padding: 6px 0; border: none; background: #fff;"></td></tr>
                 <tr class="total-footer">
                     <td colspan="6" style="text-align: right;">Subtotal:</td>
                     <td style="text-align: right;">${formatIndianCurrency(subtotal)}</td>
@@ -2201,6 +2202,25 @@
                 option.textContent = `${q.quotationId} - ${q.clientName} (${q.status || 'Draft'}) - ${dateStr}`;
                 select.appendChild(option);
             });
+
+            suggestNextPid();
+        }
+
+        function suggestNextPid() {
+            // Only suggest if this is a new (unsaved) quotation and PID is empty
+            if (currentQuotationId) return;
+            const pidField = document.getElementById('pid');
+            if (pidField.value.trim()) return;
+
+            const pids = savedQuotations
+                .map(q => parseInt(q.pid, 10))
+                .filter(n => !isNaN(n));
+
+            if (pids.length === 0) return;
+
+            const nextPid = Math.max(...pids) + 1;
+            pidField.placeholder = `Suggested: ${nextPid}`;
+            pidField.value = nextPid;
         }
 
         // Refresh quotations list
@@ -2858,6 +2878,7 @@ function jsonResponse(data) {
 
             // Reset form fields
             document.getElementById('pid').value = '';
+            suggestNextPid();
             document.getElementById('clientName').value = '';
             document.getElementById('projectName').value = '';
             document.getElementById('siteAddress').value = '';
