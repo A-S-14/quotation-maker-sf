@@ -2844,7 +2844,7 @@ function jsonResponse(data) {
         }
         
         function setDetailsEditable(editable) {
-            const fields = ['pid', 'clientName', 'projectName', 'siteAddress', 'preparedBy', 'quoteDate', 'validDays'];
+            const fields = ['pid', 'clientName', 'projectName', 'siteAddress', 'preparedBy', 'validDays'];
             fields.forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
